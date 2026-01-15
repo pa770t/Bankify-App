@@ -12,123 +12,20 @@ public class TransactionDetail extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(235, 238, 242));
 
-        // ===== Create Sidebar =====
-        JPanel sidebarPanel = createSidebar(cardLayout, contentPanel);
-        add(sidebarPanel, BorderLayout.WEST);
+        // Get the top-level window (JFrame) to pass to the sidebar
+        // We use a helper because the panel might not be added to a frame yet
+        SwingUtilities.invokeLater(() -> {
+            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+            // "Transactions" is the active page for this view
+            Sidebar sidebar = new Sidebar(parentFrame, "Transactions");
+            add(sidebar, BorderLayout.WEST);
+            revalidate();
+            repaint();
+        });
 
         // ===== Create Main Content =====
         JPanel mainContent = createMainContent(tx, cardLayout, contentPanel);
         add(mainContent, BorderLayout.CENTER);
-    }
-
-    // ===== Sidebar Creation Method =====
-    private JPanel createSidebar(CardLayout cardLayout, JPanel contentPanel) {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setPreferredSize(new Dimension(280, 0)); // Increased width for 1200x800
-        sidebar.setBackground(Color.WHITE);
-
-        JPanel header = new JPanel();
-        header.setBackground(Color.WHITE);
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        header.setBorder(BorderFactory.createEmptyBorder(30, 10, 20, 10));
-
-        JLabel logoLabel = new JLabel();
-        logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        URL logoURL = getClass().getResource("/Resources/bank_logo.jpg");
-        if (logoURL != null) {
-            ImageIcon logoIcon = new ImageIcon(logoURL);
-            Image img = logoIcon.getImage().getScaledInstance(220, 140, Image.SCALE_SMOOTH);
-            logoLabel.setIcon(new ImageIcon(img));
-        }
-        header.add(logoLabel);
-        header.add(Box.createVerticalStrut(10));
-
-        JPanel menuPanel = new JPanel();
-        menuPanel.setBackground(Color.WHITE);
-        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
-
-        // Home button
-        RoundedButton homeBtn = createMenuButton("Home", "/Resources/home.png");
-        homeBtn.addActionListener(e -> openHomePage());
-        menuPanel.add(homeBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        // Deposit button
-        RoundedButton depositBtn = createMenuButton("Deposit", "/Resources/deposit.png");
-        depositBtn.addActionListener(e -> openDepositPage());
-        menuPanel.add(depositBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        // Withdraw button
-        RoundedButton withdrawBtn = createMenuButton("Withdraw", "/Resources/withdraw.png");
-        withdrawBtn.addActionListener(e -> openWithdrawPage());
-        menuPanel.add(withdrawBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        // Transfer button
-        RoundedButton transferBtn = createMenuButton("Transfer", "/Resources/transfer.png");
-        transferBtn.addActionListener(e -> openTransferPage());
-        menuPanel.add(transferBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        // Transactions button
-        RoundedButton transactionsBtn = createMenuButton("Transactions", "/Resources/transactions.png");
-        transactionsBtn.addActionListener(e -> {
-            cardLayout.show(contentPanel, "Transactions");
-        });
-        menuPanel.add(transactionsBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        // Settings button
-        RoundedButton settingsBtn = createMenuButton("Settings", "/Resources/settings.png");
-        settingsBtn.addActionListener(e -> openSettingsPage());
-        menuPanel.add(settingsBtn);
-        
-        menuPanel.add(Box.createVerticalGlue());
-
-        sidebar.add(header, BorderLayout.NORTH);
-        sidebar.add(menuPanel, BorderLayout.CENTER);
-
-        return sidebar;
-    }
-
-
-// ===== Menu Button Creation Method =====
-    private RoundedButton createMenuButton(String text, String iconPath) {
-        RoundedButton btn = new RoundedButton(text);
-        URL iconURL = getClass().getResource(iconPath);
-        if (iconURL != null) {
-            ImageIcon icon = new ImageIcon(iconURL);
-            Image img = icon.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
-            btn.setIcon(new ImageIcon(img));
-        }
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(240, 60));
-        btn.setPreferredSize(new Dimension(240, 60));
-        btn.setBackground(new Color(30,127,179));
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Increased font size
-        btn.setHorizontalTextPosition(SwingConstants.RIGHT);
-        btn.setIconTextGap(15);
-        btn.setFocusPainted(false);
-
-        // Hover effect
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { 
-                btn.setBackground(new Color(20,100,150)); 
-            }
-            public void mouseExited(MouseEvent e) { 
-                btn.setBackground(new Color(30,127,179)); 
-            }
-            public void mousePressed(MouseEvent e) {
-                btn.setBackground(new Color(15, 85, 130));
-            }
-            public void mouseReleased(MouseEvent e) {
-                btn.setBackground(new Color(30,127,179));
-            }
-        });
-
-        return btn;
     }
 
     // ===== Main Content Creation Method =====
@@ -281,62 +178,10 @@ public class TransactionDetail extends JPanel {
         label.setForeground(isBold ? new Color(70, 70, 70) : Color.BLACK);
         return label;
     }
-    
+
     // Existing helper for backward compatibility (if needed)
     private JLabel createDetailLabel(String text, boolean isBold) {
         return createDetailLabel(text, isBold, 14);
-    }
-
-
-// ===== Page Navigation Methods =====
-    private void openHomePage() {
-        SwingUtilities.invokeLater(() -> {
-            HomePage homePage = new HomePage();
-            homePage.setVisible(true);
-            Window window = SwingUtilities.getWindowAncestor(this);
-            if (window != null) window.dispose();
-        });
-    }
-    
-    private void openDepositPage() {
-        SwingUtilities.invokeLater(() -> {
-            DepositPage depositPage = new DepositPage();
-            depositPage.setVisible(true);
-            Window window = SwingUtilities.getWindowAncestor(this);
-            if (window != null) window.dispose();
-        });
-    }
-    
-    private void openWithdrawPage() {
-        SwingUtilities.invokeLater(() -> {
-            WithdrawPage withdrawPage = new WithdrawPage();
-            withdrawPage.setVisible(true);
-            Window window = SwingUtilities.getWindowAncestor(this);
-            if (window != null) window.dispose();
-        });
-    }
-    
-    private void openTransferPage() {
-        SwingUtilities.invokeLater(() -> {
-            TransferPage transferPage = new TransferPage();
-            transferPage.setVisible(true);
-            Window window = SwingUtilities.getWindowAncestor(this);
-            if (window != null) window.dispose();
-        });
-    }
-    
-    private void openSettingsPage() {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                MainSettings settingsPage = new MainSettings();
-                settingsPage.setVisible(true);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Settings page not found.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            Window window = SwingUtilities.getWindowAncestor(this);
-            if (window != null) window.dispose();
-        });
     }
 
     private static class RoundedButton extends JButton {

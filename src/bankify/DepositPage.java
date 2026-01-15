@@ -26,118 +26,12 @@ public class DepositPage extends JFrame {
         setLocationRelativeTo(null);
         getContentPane().setLayout(new BorderLayout());
 
-        JPanel sidebar = createSidebar();
+        // Sidebar
+        Sidebar sidebar = new Sidebar(this, "Deposit");
         JPanel contentPanel = createDepositContent();
 
         add(sidebar, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);
-    }
-
-    private JPanel createSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setPreferredSize(new Dimension(280, 0)); // Sidebar width optimized for 1200
-        sidebar.setBackground(Color.WHITE);
-
-        JPanel header = new JPanel();
-        header.setBackground(Color.WHITE);
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        header.setBorder(BorderFactory.createEmptyBorder(30, 10, 20, 10));
-
-        JLabel logoLabel = new JLabel();
-        logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        URL logoURL = getClass().getResource("/Resources/bank_logo.jpg");
-        if (logoURL != null) {
-            ImageIcon logoIcon = new ImageIcon(logoURL);
-            Image img = logoIcon.getImage().getScaledInstance(220, 150, Image.SCALE_SMOOTH);
-            logoLabel.setIcon(new ImageIcon(img));
-        }
-        header.add(logoLabel);
-        header.add(Box.createVerticalStrut(10));
-
-        JPanel menuPanel = new JPanel();
-        menuPanel.setBackground(Color.WHITE);
-        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
-        
-        // Sidebar buttons with increased font size
-        RoundedButton homeBtn = createMenuButton("Home", "/Resources/home.png");
-        homeBtn.addActionListener(e -> openHomePage());
-        menuPanel.add(homeBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        RoundedButton depositBtn = createActiveMenuButton("Deposit", "/Resources/deposit.png");
-        menuPanel.add(depositBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        RoundedButton withdrawBtn = createMenuButton("Withdraw", "/Resources/withdraw.png");
-        withdrawBtn.addActionListener(e -> openWithdrawPage());
-        menuPanel.add(withdrawBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        RoundedButton transferBtn = createMenuButton("Transfer", "/Resources/transfer.png");
-        transferBtn.addActionListener(e -> openTransferPage());
-        menuPanel.add(transferBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        RoundedButton transactionsBtn = createMenuButton("Transactions", "/Resources/transactions.png");
-        transactionsBtn.addActionListener(e -> openTransactionsPage());
-        menuPanel.add(transactionsBtn);
-        menuPanel.add(Box.createVerticalStrut(15));
-        
-        RoundedButton settingsBtn = createMenuButton("Settings", "/Resources/settings.png");
-        settingsBtn.addActionListener(e -> openSettingsPage());
-        menuPanel.add(settingsBtn);
-        
-        menuPanel.add(Box.createVerticalGlue());
-
-        sidebar.add(header, BorderLayout.NORTH);
-        sidebar.add(menuPanel, BorderLayout.CENTER);
-
-        return sidebar;
-    }
-
-    private RoundedButton createMenuButton(String text, String iconPath) {
-        RoundedButton btn = new RoundedButton(text);
-        URL iconURL = getClass().getResource(iconPath);
-        if (iconURL != null) {
-            ImageIcon icon = new ImageIcon(iconURL);
-            Image img = icon.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
-            btn.setIcon(new ImageIcon(img));
-        }
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(240, 60));
-        btn.setPreferredSize(new Dimension(240, 60));
-        btn.setBackground(new Color(30, 127, 179));
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Increased Font Size
-        btn.setHorizontalTextPosition(SwingConstants.RIGHT);
-        btn.setIconTextGap(15);
-        
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { btn.setBackground(new Color(20,100,150)); }
-            public void mouseExited(MouseEvent e) { btn.setBackground(new Color(30,127,179)); }
-        });
-        return btn;
-    }
-
-    private RoundedButton createActiveMenuButton(String text, String iconPath) {
-        RoundedButton btn = new RoundedButton(text);
-        URL iconURL = getClass().getResource(iconPath);
-        if (iconURL != null) {
-            ImageIcon icon = new ImageIcon(iconURL);
-            Image img = icon.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
-            btn.setIcon(new ImageIcon(img));
-        }
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(240, 60));
-        btn.setPreferredSize(new Dimension(240, 60));
-        btn.setBackground(new Color(0,191,255));
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Increased Font Size
-        btn.setHorizontalTextPosition(SwingConstants.RIGHT);
-        btn.setIconTextGap(15);
-        btn.setHoverBackgroundColor(new Color(0,191,255));
-        btn.setPressedBackgroundColor(new Color(0,191,255));
-        return btn;
     }
 
     private JPanel createDepositContent() {
@@ -243,54 +137,6 @@ public class DepositPage extends JFrame {
         panel.add(btnDeposit);
 
         return panel;
-    }
-
-    private void openHomePage() {
-        HomePage homePage = new HomePage();
-        homePage.setSize(1200, 800);
-        homePage.setLocationRelativeTo(null);
-        homePage.setVisible(true);
-        this.dispose();
-    }
-    
-    private void openWithdrawPage() {
-        WithdrawPage withdrawPage = new WithdrawPage();
-        withdrawPage.setSize(1200, 800);
-        withdrawPage.setLocationRelativeTo(null);
-        withdrawPage.setVisible(true);
-        this.dispose();
-    }
-    
-    private void openTransferPage() {
-        TransferPage transferPage = new TransferPage();
-        transferPage.setSize(1200, 800);
-        transferPage.setLocationRelativeTo(null);
-        transferPage.setVisible(true);
-        this.dispose();
-    }
-    
-    private void openTransactionsPage() {
-        SwingUtilities.invokeLater(() -> {
-            JFrame transactionsFrame = new JFrame("Bankify - Transactions");
-            transactionsFrame.setSize(1200, 800);
-            transactionsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            CardLayout cardLayout = new CardLayout();
-            JPanel content = new JPanel(cardLayout);
-            TransactionsPage tp = new TransactionsPage(cardLayout, content, transactionsFrame);
-            content.add(tp, "Transactions");
-            transactionsFrame.add(content);
-            transactionsFrame.setLocationRelativeTo(this);
-            transactionsFrame.setVisible(true);
-            this.setVisible(false);
-        });
-    }
-    
-    private void openSettingsPage() {
-        MainSettings settingsPage = new MainSettings();
-        settingsPage.setSize(1200, 800);
-        settingsPage.setLocationRelativeTo(null);
-        settingsPage.setVisible(true);
-        this.dispose();
     }
 
     private void handleDeposit() {

@@ -46,11 +46,11 @@ public class TransactionsPage extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(30, 127, 179));
 
-        // ===== Create Sidebar =====
-        sidebarPanel = createSidebar();
-        add(sidebarPanel, BorderLayout.WEST);
+        // Pass parentFrame (the JFrame) and the active page name "Transactions"
+        Sidebar sidebar = new Sidebar(parentFrame, "Transactions");
+        add(sidebar, BorderLayout.WEST);
 
-        // ===== Create Main Content =====
+        // Create Main Content
         JPanel mainContent = createMainContent();
         add(mainContent, BorderLayout.CENTER);
     }
