@@ -39,7 +39,7 @@ public class AccountType extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 55, 55);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 70, 70);
                 g2.dispose();
             }
         };
@@ -221,4 +221,5 @@ public class AccountType extends JFrame {
             frame.setVisible(true);
         });
     }
+
 }
