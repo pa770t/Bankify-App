@@ -9,6 +9,10 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.awt.image.BufferedImage;
 import java.awt.AlphaComposite;
+import java.util.List;
+import java.util.Map;
+
+import bankify.service.TransactionService;
 
 public class TransactionsPage extends JPanel {
 
@@ -35,13 +39,10 @@ public class TransactionsPage extends JPanel {
     private ArrayList<Tx> transactions;
     private CardLayout cardLayout;
     private JPanel contentPanel;
-    private JPanel sidebarPanel;
-    private JFrame parentFrame;
 
     public TransactionsPage(CardLayout cardLayout, JPanel contentPanel, JFrame parentFrame) {
         this.cardLayout = cardLayout;
         this.contentPanel = contentPanel;
-        this.parentFrame = parentFrame;
 
         setLayout(new BorderLayout());
         setBackground(new Color(30, 127, 179));
@@ -69,87 +70,6 @@ public class TransactionsPage extends JPanel {
         }
     }
 
-    private JPanel createSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setPreferredSize(new Dimension(280, 0)); 
-        sidebar.setBackground(Color.WHITE);
-
-        JPanel header = new JPanel();
-        header.setBackground(Color.WHITE);
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        header.setBorder(BorderFactory.createEmptyBorder(30, 10, 20, 10));
-
-        JLabel logoLabel = new JLabel();
-        logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        ImageIcon logoIcon = loadIcon("/Resources/bank_logo.jpg", 220, 150);
-        if (logoIcon != null) {
-            logoLabel.setIcon(logoIcon);
-        } else {
-            logoLabel.setText("BANKIFY");
-            logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
-            logoLabel.setForeground(new Color(30, 127, 179));
-        }
-        
-        header.add(logoLabel);
-        header.add(Box.createVerticalStrut(10));
-
-        JPanel menuPanel = new JPanel();
-        menuPanel.setBackground(Color.WHITE);
-        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
-
-        // Sidebar Buttons
-        String[] menuNames = {"Home", "Deposit", "Withdraw", "Transfer", "Transactions", "Settings"};
-        String[] iconPaths = {"/Resources/home.png", "/Resources/deposit.png", "/Resources/withdraw.png", "/Resources/transfer.png", "/Resources/transactions.png", "/Resources/settings.png"};
-
-        for (int i = 0; i < menuNames.length; i++) {
-            RoundedButton btn = createMenuButton(menuNames[i], iconPaths[i]);
-            String name = menuNames[i];
-            
-            if (name.equals("Transactions")) {
-                btn.setBackground(new Color(0,191,255));
-                btn.setForeground(Color.WHITE);
-            } else {
-                btn.addActionListener(e -> navigateTo(name));
-            }
-            
-            menuPanel.add(btn);
-            menuPanel.add(Box.createVerticalStrut(15));
-        }
-        
-        menuPanel.add(Box.createVerticalGlue());
-        sidebar.add(header, BorderLayout.NORTH);
-        sidebar.add(menuPanel, BorderLayout.CENTER);
-        return sidebar;
-    }
-
-    private RoundedButton createMenuButton(String text, String iconPath) {
-        RoundedButton btn = new RoundedButton(text);
-        ImageIcon icon = loadIcon(iconPath, 35, 35);
-        if (icon != null) btn.setIcon(icon);
-
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(240, 60));
-        btn.setPreferredSize(new Dimension(240, 60));
-        btn.setBackground(new Color(30,127,179));
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        btn.setHorizontalTextPosition(SwingConstants.RIGHT);
-        btn.setIconTextGap(15);
-        btn.setFocusPainted(false);
-
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { 
-                if (!btn.getText().equals("Transactions")) btn.setBackground(new Color(20,100,150)); 
-            }
-            public void mouseExited(MouseEvent e) { 
-                if (!btn.getText().equals("Transactions")) btn.setBackground(new Color(30,127,179));
-                else btn.setBackground(new Color(0, 191, 255));
-            }
-        });
-        return btn;
-    }
-
     private JPanel createMainContent() {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -170,12 +90,32 @@ public class TransactionsPage extends JPanel {
         mainPanel.add(titleLabel);
         mainPanel.add(Box.createVerticalStrut(35));
 
-        // Dummy data
+        // --- REAL DATA LOGIC START ---
         transactions = new ArrayList<>();
-        transactions.add(new Tx("Deposit", "TX123456", "+5,000 MMK", "1 Jan 2026 2:30PM", "Successful", "/Resources/user.png"));
-        transactions.add(new Tx("Withdraw", "TX123457", "-2,000 MMK", "2 Jan 2026 10:00AM", "Failed", "/Resources/user.png"));
-        transactions.add(new Tx("Send", "TX123458", "-1,000 MMK", "3 Jan 2026 11:15AM", "Successful", "/Resources/user.png"));
-        transactions.add(new Tx("Receive", "TX123459", "+3,000 MMK", "4 Jan 2026 9:00AM", "Successful", "/Resources/user.png"));
+        TransactionService service = new TransactionService();
+
+        // Replace with currently user id
+        long currentUserId = 2;
+        List<Map<String, Object>> dbData = service.getTransactionsForUser(currentUserId);
+
+        if (dbData != null) {
+            for (Map<String, Object> row : dbData) {
+                // Mapping DB columns to your Tx model
+                String type = row.get("transaction_type").toString();
+                String id = row.get("transaction_id").toString();
+                String rawAmount = row.get("amount").toString();
+                String date = row.get("transaction_at").toString();
+                String status = row.get("status").toString();
+
+                // Format amount display based on type
+                String amount = (type.equalsIgnoreCase("Deposit") || type.equalsIgnoreCase("Receive"))
+                        ? "+" + rawAmount + " MMK"
+                        : "-" + rawAmount + " MMK";
+
+                transactions.add(new Tx(type, id, amount, date, status, "/Resources/user.png"));
+            }
+        }
+        // --- REAL DATA LOGIC END ---
 
         JPanel transactionContainer = new JPanel();
         transactionContainer.setLayout(new BoxLayout(transactionContainer, BoxLayout.Y_AXIS));
@@ -226,11 +166,11 @@ public class TransactionsPage extends JPanel {
         typeLabel.setForeground(Color.WHITE);
         typeLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         typeLabel.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
-        typeLabel.setUI(new PillLabelUI(tx.type.equals("Deposit") || tx.type.equals("Receive") ? 
+        typeLabel.setUI(new PillLabelUI(tx.type.equalsIgnoreCase("Deposit") || tx.type.equalsIgnoreCase("Receive") ?
             new Color(60, 179, 113) : new Color(220, 20, 60), 30));
         row1.add(typeLabel);
 
-        JLabel idLabel = new JLabel(tx.transactionId);
+        JLabel idLabel = new JLabel("Transaction ID:" + tx.transactionId);
         idLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         idLabel.setForeground(new Color(50, 50, 50));
         row1.add(idLabel);
@@ -251,7 +191,8 @@ public class TransactionsPage extends JPanel {
         statusLabel.setForeground(Color.WHITE);
         statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 15, 4, 15));
-        statusLabel.setUI(new PillLabelUI(tx.status.equals("Successful") ? new Color(60, 179, 113) : new Color(220, 20, 60), 25));
+        statusLabel.setUI(new PillLabelUI(tx.status.equalsIgnoreCase("Success") ? new Color(60, 179, 113) : new Color(220, 20,
+                60), 25));
         row2.add(statusLabel);
 
         infoPanel.add(row1);
@@ -314,42 +255,6 @@ public class TransactionsPage extends JPanel {
             super.paint(g2, c);
             g2.dispose();
         }
-    }
-
-    private class RoundedButton extends JButton {
-        public RoundedButton(String text) {
-            super(text);
-            setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false); setOpaque(false);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        }
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(getBackground());
-            g2.fillRoundRect(0,0,getWidth(),getHeight(),getHeight(),getHeight());
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    private void navigateTo(String pageName) {
-        if (parentFrame != null) parentFrame.dispose();
-        SwingUtilities.invokeLater(() -> {
-            JFrame f = null;
-            switch (pageName) {
-                case "Home" -> f = new HomePage();
-                case "Deposit" -> f = new DepositPage();
-                case "Withdraw" -> f = new WithdrawPage();
-                case "Transfer" -> f = new TransferPage();
-                case "Settings" -> f = new MainSettings();
-            }
-            if (f != null) {
-                f.setSize(1200, 800);
-                f.setLocationRelativeTo(null);
-                f.setVisible(true);
-            }
-        });
     }
 
     public static void main(String[] args) {

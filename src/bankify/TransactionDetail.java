@@ -118,7 +118,7 @@ public class TransactionDetail extends JPanel {
         gbc.gridx = 1;
         JLabel statusLabel = createDetailLabel(tx.status, false, 20);
         statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        statusLabel.setForeground(tx.status.equals("Successful") ? new Color(0, 150, 0) : new Color(200, 0, 0));
+        statusLabel.setForeground(tx.status.equalsIgnoreCase("Success") ? new Color(0, 150, 0) : new Color(200, 0, 0));
         detailsPanel.add(statusLabel, gbc);
         
         cardPanel.add(detailsPanel, BorderLayout.CENTER);
