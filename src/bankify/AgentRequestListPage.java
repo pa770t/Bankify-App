@@ -183,6 +183,7 @@ public class AgentRequestListPage extends JFrame {
         };
         p.setOpaque(false);
         p.setLayout(null);
+        p.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         JLabel lblIcon = createScaledImageLabel("/Resources/my_profile.png", 50, 50);
         lblIcon.setBounds(20, 20, 50, 50);
