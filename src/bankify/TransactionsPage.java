@@ -11,6 +11,8 @@ import java.awt.image.BufferedImage;
 import java.awt.AlphaComposite;
 import java.util.List;
 import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 import bankify.service.TransactionService;
 
@@ -111,6 +113,11 @@ public class TransactionsPage extends JPanel {
                 String amount = (type.equalsIgnoreCase("Deposit") || type.equalsIgnoreCase("Receive"))
                         ? "+" + rawAmount + " MMK"
                         : "-" + rawAmount + " MMK";
+
+                // Format date & time
+                LocalDateTime dateTime = LocalDateTime.parse(date);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssa");
+                date = dateTime.format(formatter);
 
                 transactions.add(new Tx(type, id, amount, date, status, "/Resources/user.png"));
             }
