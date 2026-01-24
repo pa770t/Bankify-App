@@ -2,7 +2,11 @@ package bankify;
 
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
-
+import javax.swing.text.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -225,17 +229,80 @@ public class MyProfile extends JFrame {
         lblPhone.setBounds(column2X, 440, 150, 30);
         contentPanel.add(lblPhone);
 
+        
+        JPanel phoneContainer = new JPanel();
+        phoneContainer.setBounds(column2X, 480, fieldWidth, fieldHeight);
+        phoneContainer.setLayout(new BorderLayout());
+        phoneContainer.setBackground(contentPanel.getBackground());
+
+        
+        JPanel countryCodePanel = new JPanel();
+        countryCodePanel.setLayout(new BorderLayout());
+        countryCodePanel.setPreferredSize(new Dimension(60, fieldHeight));
+        countryCodePanel.setBackground(new Color(245, 245, 245));
+        countryCodePanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 1, 1, 0, new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(0, 10, 0, 0)
+        ));
+
+        JLabel countryCodeLabel = new JLabel("+95");
+        countryCodeLabel.setFont(new Font(fieldFont.getName(), Font.BOLD, fieldFont.getSize()));
+        countryCodeLabel.setForeground(Color.BLACK);
+        countryCodePanel.add(countryCodeLabel, BorderLayout.WEST);
+
+        // Phone number text field
         textField_5 = new JTextField();
         textField_5.setFont(fieldFont);
-        textField_5.setBounds(column2X, 480, fieldWidth, fieldHeight);
-        contentPanel.add(textField_5);
+        textField_5.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 0, 1, 1, new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(0, 10, 0, 0)
+        ));
+     
+        textField_5.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyTyped(java.awt.event.KeyEvent e) {
+                JTextField field = (JTextField) e.getSource();
+                char c = e.getKeyChar();
+                
+                
+                if (!Character.isDigit(c)) {
+                    e.consume();
+                    return;
+                }
+                
+               
+                if (field.getText().length() >= 10) {
+                    e.consume();
+                }
+            }
+        });
 
-        err6 = new JLabel("");
-        err6.setForeground(errorColor);
-        err6.setFont(errorFont);
-        err6.setBounds(column2X, 525, fieldWidth, 25);
-        contentPanel.add(err6);
-        
+       
+        textField_5.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                JTextField field = (JTextField) e.getSource();
+                String text = field.getText();
+                
+               
+                String digitsOnly = text.replaceAll("[^0-9]", "");
+                
+                
+                if (digitsOnly.length() > 10) {
+                    digitsOnly = digitsOnly.substring(0, 10);
+                }
+                
+                
+                if (!text.equals(digitsOnly)) {
+                    field.setText(digitsOnly);
+                }
+            }
+        });
+        phoneContainer.add(countryCodePanel, BorderLayout.WEST);
+        phoneContainer.add(textField_5, BorderLayout.CENTER);
+        contentPanel.add(phoneContainer);
+
+    
         
         
 
@@ -318,7 +385,7 @@ public class MyProfile extends JFrame {
 
     private boolean isValidPhoneNumber(String phone) {
         String digits = phone.replaceAll("[^0-9]", "");
-        return digits.length() >= 10 && digits.length() <= 15;
+        return digits.length() == 10 ;
     }
 
     private class RoundedCornerButton extends JButton {
@@ -349,4 +416,5 @@ public class MyProfile extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MyProfile().setVisible(true));
     }
+
 }
