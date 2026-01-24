@@ -59,7 +59,7 @@ public class HomePage extends JFrame {
 
         // Phone Number Panel
         RoundedPanel phonePanel = new RoundedPanel();
-        phonePanel.setBounds(70, 165, 250, 80); // Adjusted position
+        phonePanel.setBounds(70, 165, 470, 80); // Adjusted position
         phonePanel.setBackground(new Color(0, 191, 255));
         phonePanel.setLayout(null);
 
@@ -72,11 +72,12 @@ public class HomePage extends JFrame {
         } 
         phonePanel.add(phoneIcon);
 
-        JLabel phoneLabel = new JLabel("+959123456789");
-        phoneLabel.setBounds(70, 25, 165, 35);
+        JLabel phoneLabel = new JLabel("Your Phone Number: +959123456789");
+        phoneLabel.setBounds(70, 25, 395, 35);
         phoneLabel.setForeground(Color.WHITE);
         phoneLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 22));
         phonePanel.add(phoneLabel);
+
 
         // Balance Panel
         RoundedPanel balancePanel = new RoundedPanel();
@@ -238,3 +239,4 @@ public class HomePage extends JFrame {
     }
 
 }
+
