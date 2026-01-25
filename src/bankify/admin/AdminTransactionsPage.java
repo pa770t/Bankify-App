@@ -415,28 +415,7 @@ public class AdminTransactionsPage extends JFrame {
     
     
     
-    private void processPendingTransactions() {
-        int pendingCount = 0;
-        for (Transaction txn : transactionList) {
-            if (txn.getStatus().equals("Pending")) {
-                txn.setStatus("Successful");
-                pendingCount++;
-            }
-        }
-        
-        if (pendingCount > 0) {
-            JOptionPane.showMessageDialog(this, 
-                    pendingCount + " pending transactions have been processed.",
-                    "Transactions Processed", 
-                    JOptionPane.INFORMATION_MESSAGE);
-            loadTransactions();
-        } else {
-            JOptionPane.showMessageDialog(this, 
-                    "No pending transactions found.",
-                    "No Pending Transactions", 
-                    JOptionPane.INFORMATION_MESSAGE);
-        }
-    }
+    
     
  // StatusRenderer class for Status column with background colors
     private class StatusRenderer extends DefaultTableCellRenderer {
@@ -569,3 +548,4 @@ public class AdminTransactionsPage extends JFrame {
     }
 
 }
+
