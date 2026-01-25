@@ -4,11 +4,11 @@ import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder; // Added for custom border
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.net.URL;
-import java.time.LocalDate;
 import java.util.regex.Pattern;
 
 public class AdminMyProfile extends JFrame {
@@ -26,8 +26,6 @@ public class AdminMyProfile extends JFrame {
         setLocationRelativeTo(null);
         getContentPane().setLayout(new BorderLayout());
 
-        // Sidebar ခေါ်တဲ့နေရာမှာ "Settings" အစား "AdminProfile" လို့ ပြောင်းပေးလိုက်ပါ
-        // ဒါမှ Sidebar က Settings ခလုတ်ကို နှိပ်ရင် AdminSettingsPage ကို ပြန်သွားမှာပါ
         AdminSidebar sidebar = new AdminSidebar(this, "AdminProfile");
         
         contentPanel = createContentPanel();
@@ -41,7 +39,7 @@ public class AdminMyProfile extends JFrame {
         panel.setBackground(new Color(30, 127, 179));
         panel.setLayout(null);
 
-     // --- Header (Pill Shape) ---
+        // --- Header (Pill Shape) ---
         JPanel headerPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -54,12 +52,9 @@ public class AdminMyProfile extends JFrame {
         };
         headerPanel.setLayout(null);
         headerPanel.setBackground(new Color(0, 191, 255));
-        
-        // Header အကျယ်ကို ၂၆၀ အထိ တိုးလိုက်ပါပြီ (စာသား အဝင်အထွက် အဆင်ပြေအောင်)
         headerPanel.setBounds(330, 60, 260, 70); 
 
         JLabel iconLabel = new JLabel("");
-        // Icon ကို ဘယ်ဘက်ကနေ ၂၀ ပေးထားပါတယ်
         iconLabel.setBounds(20, 12, 55, 45); 
         URL iconURL = getClass().getResource("/Resources/my_profile.png");
         if (iconURL != null) {
@@ -72,13 +67,11 @@ public class AdminMyProfile extends JFrame {
         JLabel titleLabel = new JLabel("Admin Profile");
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 24));
-        
-        // --- Padding ထည့်သည့်နေရာ ---
-        // x ကို ၈၅ အထိ တိုးလိုက်ပါတယ် (Icon နဲ့ စာသားကြား Space ပိုရသွားပါလိမ့်မယ်)
         titleLabel.setBounds(85, 12, 160, 45); 
         
         headerPanel.add(titleLabel);
         panel.add(headerPanel);
+
         // --- Styles & Positioning ---
         Font labelFont = new Font("Tw Cen MT", Font.BOLD, 18);
         Font fieldFont = new Font("Tw Cen MT", Font.PLAIN, 18);
@@ -114,7 +107,47 @@ public class AdminMyProfile extends JFrame {
         err5 = createErrorLabel(panel, col1X, 525, fieldWidth, errorFont, errorColor);
 
         addLabel(panel, "Phone Number", col2X, 440, labelFont);
-        textField_5 = createField(panel, col2X, 480, fieldWidth, fieldHeight, fieldFont);
+        
+     // --- MODIFIED PHONE SECTION START ---
+        JPanel phoneBox = new JPanel(new BorderLayout());
+        phoneBox.setBounds(col2X, 480, fieldWidth, fieldHeight);
+        phoneBox.setBackground(Color.WHITE); 
+        phoneBox.setBorder(new LineBorder(Color.GRAY)); 
+
+        // The Prefix Label (+95) inside the box
+        JLabel prefixLabel = new JLabel(" +95 ");
+
+        // ဒီနေရာမှာ Font.BOLD နဲ့ ပြင်ပေးရပါမယ်
+        prefixLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 18)); 
+
+        prefixLabel.setForeground(Color.BLACK);
+        
+        // The Input Field (Border removed to blend in)
+        textField_5 = new JTextField();
+        textField_5.setFont(fieldFont);
+        textField_5.setBorder(null); // No border for the inner field
+        textField_5.setBackground(Color.WHITE);
+        
+        // Logic to restrict input (Digits only, Max 10)
+        textField_5.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                if (!Character.isDigit(c) && c != KeyEvent.VK_BACK_SPACE && c != KeyEvent.VK_DELETE) {
+                    e.consume(); 
+                }
+                if (textField_5.getText().length() >= 10 && c != KeyEvent.VK_BACK_SPACE && c != KeyEvent.VK_DELETE && textField_5.getSelectedText() == null) {
+                    e.consume(); 
+                }
+            }
+        });
+
+        phoneBox.add(prefixLabel, BorderLayout.WEST);
+        phoneBox.add(textField_5, BorderLayout.CENTER);
+        
+        panel.add(phoneBox);
+        // --- MODIFIED PHONE SECTION END ---
+
         err6 = createErrorLabel(panel, col2X, 525, fieldWidth, errorFont, errorColor);
 
         // Buttons
@@ -224,7 +257,7 @@ public class AdminMyProfile extends JFrame {
             err6.setText("! Phone required");
             hasError = true;
         } else if (!isValidPhoneNumber(phone)) {
-            err6.setText("! Invalid (10-15 digits)");
+            err6.setText("! Must be exactly 10 digits");
             hasError = true;
         }
 
@@ -239,12 +272,13 @@ public class AdminMyProfile extends JFrame {
     }
 
     private boolean isValidPhoneNumber(String phone) {
-        String digits = phone.replaceAll("[^0-9]", "");
-        return digits.length() >= 10 && digits.length() <= 15;
+        // User inputs only the 10 digits, +95 is visual only
+        return phone.matches("\\d{10}");
     }
 
     // --- Custom Components ---
     private class RoundedCornerButton extends JButton {
+        private static final long serialVersionUID = 1L;
         private Color baseColor;
         public RoundedCornerButton(String text) {
             super(text);
