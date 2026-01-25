@@ -194,19 +194,7 @@ public class AdminTransactionsPage extends JFrame {
         filterPanel.add(viewDetailsButton);
         filterPanel.add(resetButton);
         
-        // Action Buttons Panel
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(new Color(240, 242, 245));
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         
-        JButton processButton = createButton("Process Pending", new Color(243, 156, 18));
-        JButton exportButton = createButton("Export CSV", new Color(142, 68, 173));
-        
-        processButton.addActionListener(e -> processPendingTransactions());
-        exportButton.addActionListener(e -> exportToCSV());
-        
-        buttonPanel.add(processButton);
-        buttonPanel.add(exportButton);
         
         toolbarPanel.add(searchPanel);
         toolbarPanel.add(filterPanel);
@@ -425,42 +413,7 @@ public class AdminTransactionsPage extends JFrame {
         }
     }
     
-    private void exportToCSV() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Export Transactions");
-        fileChooser.setSelectedFile(new java.io.File("transactions_export.csv"));
-        
-        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                java.io.PrintWriter writer = new java.io.PrintWriter(fileChooser.getSelectedFile());
-                writer.println("Transaction ID,From User,To User,Type,Amount,Status,Date");
-                
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                
-                for (Transaction txn : transactionList) {
-                    writer.printf("%s,%s,%s,%s,MMK %.0f,%s,%s%n",
-                        txn.getTransactionId(),
-                        txn.getFromUserName() + " (" + txn.getFromUserId() + ")",
-                        txn.getToUserName() + " (" + txn.getToUserId() + ")",
-                        txn.getType(),
-                        txn.getAmount(),
-                        txn.getStatus(),
-                        sdf.format(txn.getDate()));
-                }
-                
-                writer.close();
-                JOptionPane.showMessageDialog(this, 
-                    "Transactions exported successfully to: " + fileChooser.getSelectedFile().getPath(),
-                    "Export Successful",
-                    JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, 
-                    "Error exporting transactions: " + ex.getMessage(),
-                    "Export Error",
-                    JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
+    
     
     private void processPendingTransactions() {
         int pendingCount = 0;
@@ -614,4 +567,5 @@ public class AdminTransactionsPage extends JFrame {
             frame.setVisible(true);
         });
     }
+
 }
