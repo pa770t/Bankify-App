@@ -1,24 +1,48 @@
 package bankify;
 
+import bankify.dao.AccountDao;
+import bankify.dao.CustomerDao;
+import bankify.dao.MoneyRequestDao;
+import bankify.service.PageGuardService;
+
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.net.URL;
+import java.sql.SQLException;
 
 public class DepositPage extends JFrame {
+    private static Customer customer;
+    private static CustomerDao customerDao;
 
     private static final long serialVersionUID = 1L;
     private JLabel lblBalance;
     private JTextField txtAgent;
     private JTextField txtAmount;
+    private JTextField txtDescription;
     private boolean balanceVisible = true;
-    
-    private double currentBalance = 100000.0; 
+    private Account account;
+    private AccountDao accountDao;
+    private MoneyRequestDao moneyRequestDao;
 
-    public DepositPage() {
+
+    public DepositPage(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
+        this.customer = customer ;
+        this.customerDao = customerDao;
+        this.accountDao = new AccountDao(DBConnection.getConnection());
+        this.moneyRequestDao = new MoneyRequestDao(DBConnection.getConnection());
+        try {
+            this.account = accountDao.getAccountByCustomerId(customer.getCustomerId());
+        } catch (Exception e) {
+            System.err.println("Can't find the account: " + e.getMessage());
+        }
+
         setTitle("Bankify - Deposit");
         // Screen size updated to 1200x800
         setSize(1200, 800);
@@ -27,7 +51,7 @@ public class DepositPage extends JFrame {
         getContentPane().setLayout(new BorderLayout());
 
         // Sidebar
-        Sidebar sidebar = new Sidebar(this, "Deposit");
+        Sidebar sidebar = new Sidebar(this, "Deposit", customer, customerDao);
         JPanel contentPanel = createDepositContent();
 
         add(sidebar, BorderLayout.WEST);
@@ -36,11 +60,11 @@ public class DepositPage extends JFrame {
 
     private JPanel createDepositContent() {
         JPanel panel = new JPanel();
-        panel.setBackground(new Color(30, 127, 179)); 
+        panel.setBackground(new Color(30, 127, 179));
         panel.setLayout(null);
 
         // User Profile Section
-        JPanel userPanel = createRoundedPanel(new Color(0, 191, 255)); 
+        JPanel userPanel = createRoundedPanel(new Color(0, 191, 255));
         userPanel.setBounds(70,50, 220, 80);
         userPanel.setLayout(null);
 
@@ -48,7 +72,7 @@ public class DepositPage extends JFrame {
         lblUserIcon.setBounds(12,14,55,55);
         userPanel.add(lblUserIcon);
 
-        JLabel lblUserName = new JLabel("Aung Aung");
+        JLabel lblUserName = new JLabel(customer.getFirstName() + " " + customer.getLastName());
         lblUserName.setForeground(Color.WHITE);
         lblUserName.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Increased Font Size
         lblUserName.setBounds(70,22,140,35);
@@ -64,12 +88,12 @@ public class DepositPage extends JFrame {
         lblBalanceIcon.setBounds(20, 20, 43, 43);
         balancePanel.add(lblBalanceIcon);
 
-        lblBalance = new JLabel("Account Balance : " + String.format("%.2f", currentBalance) + " MMK");
+        lblBalance = new JLabel("Account Balance : " + String.format("%.2f", account.getBalance()) + " MMK");
         lblBalance.setForeground(Color.WHITE);
         lblBalance.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Increased Font Size
         lblBalance.setBounds(75, 22, 370, 35);
         balancePanel.add(lblBalance);
-        
+
         JButton eyeButton = new JButton();
         eyeButton.setBounds(410, 22, 35, 35);
         eyeButton.setContentAreaFilled(false); eyeButton.setBorderPainted(false); eyeButton.setFocusPainted(false);
@@ -85,7 +109,8 @@ public class DepositPage extends JFrame {
             eyeButton.addActionListener(e -> {
                 balanceVisible = !balanceVisible;
                 eyeButton.setIcon(balanceVisible ? eyeOpenIcon : eyeClosedIcon);
-                lblBalance.setText(balanceVisible ? "Account Balance : " + String.format("%.2f", currentBalance) + " MMK" : "Account Balance : ****** MMK");
+                lblBalance.setText(balanceVisible ? "Account Balance : " + String.format("%.2f", account.getBalance()) + " MMK" :
+                        "Account Balance : ****** MMK");
             });
         }
         balancePanel.add(eyeButton);
@@ -93,13 +118,13 @@ public class DepositPage extends JFrame {
 
         // Input Fields with Better Fonts
         JLabel lblAgent = new JLabel("Agent");
-        lblAgent.setBounds(70, 280, 100, 30);
+        lblAgent.setBounds(70, 265, 100, 30);
         lblAgent.setForeground(Color.WHITE);
         lblAgent.setFont(new Font("Tw Cen MT", Font.BOLD, 20)); // Increased Font Size
         panel.add(lblAgent);
 
         txtAgent = new JTextField();
-        txtAgent.setBounds(70, 320, 600, 55); 
+        txtAgent.setBounds(70, 305, 600, 55);
         txtAgent.setFont(new Font("Tw Cen MT", Font.PLAIN, 18));
         txtAgent.setForeground(Color.GRAY);
         txtAgent.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
@@ -111,13 +136,13 @@ public class DepositPage extends JFrame {
         panel.add(txtAgent);
 
         JLabel lblAmount = new JLabel("Amount");
-        lblAmount.setBounds(70, 400, 100, 30);
+        lblAmount.setBounds(70, 370, 100, 30);
         lblAmount.setForeground(Color.WHITE);
         lblAmount.setFont(new Font("Tw Cen MT", Font.BOLD, 20)); // Increased Font Size
         panel.add(lblAmount);
 
         txtAmount = new JTextField();
-        txtAmount.setBounds(70, 440, 600, 55);
+        txtAmount.setBounds(70, 410, 600, 55);
         txtAmount.setFont(new Font("Tw Cen MT", Font.BOLD, 20));
         txtAmount.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
         txtAmount.setText("0");
@@ -127,9 +152,37 @@ public class DepositPage extends JFrame {
         });
         panel.add(txtAmount);
 
+        JLabel lblDescription = new JLabel("Description");
+        lblDescription.setBounds(70, 480, 120, 30);
+        lblDescription.setForeground(Color.WHITE);
+        lblDescription.setFont(new Font("Tw Cen MT", Font.BOLD, 20)); // Increased Font Size
+        panel.add(lblDescription);
+
+        txtDescription = new JTextField();
+        txtDescription.setBounds(70, 520, 600, 55);
+        txtDescription.setFont(new Font("Tw Cen MT", Font.PLAIN, 18));
+        txtDescription.setForeground(Color.GRAY);
+        txtDescription.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        txtDescription.setText("Optional note");
+        txtDescription.addFocusListener(new FocusListener() {
+            public void focusGained(FocusEvent e) {
+                if (txtDescription.getText().equals("Optional note")) {
+                    txtDescription.setText("");
+                    txtDescription.setForeground(Color.BLACK);
+                }
+            }
+            public void focusLost(FocusEvent e) {
+                if (txtDescription.getText().isEmpty()) {
+                    txtDescription.setText("Optional note");
+                    txtDescription.setForeground(Color.GRAY);
+                }
+            }
+        });
+        panel.add(txtDescription);
+
         // Deposit Button
         RoundedButton btnDeposit = new RoundedButton("Deposit");
-        btnDeposit.setBounds(285, 550, 180, 60);
+        btnDeposit.setBounds(285, 605, 180, 60);
         btnDeposit.setBackground(new Color(50, 205, 50));
         btnDeposit.setForeground(Color.WHITE);
         btnDeposit.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Increased Font Size
@@ -142,6 +195,7 @@ public class DepositPage extends JFrame {
     private void handleDeposit() {
         String agent = txtAgent.getText().trim();
         String amountStr = txtAmount.getText().trim();
+        String description = txtDescription.getText().trim();
 
         if (agent.isEmpty() || agent.equals("Enter ID")) {
             JOptionPane.showMessageDialog(this, "Please enter Agent ID.");
@@ -152,22 +206,46 @@ public class DepositPage extends JFrame {
             txtAmount.requestFocus(); return;
         }
 
+        if (description.equals("Optional note")) description = "";
+
         try {
             double depositAmount = Double.parseDouble(amountStr);
+            double amount = Double.parseDouble(amountStr);
+            if (amount <= 0) { JOptionPane.showMessageDialog(this, "Amount must be greater than 0."); return; }
+
             if (depositAmount > 0) {
-                currentBalance += depositAmount;
-                if (balanceVisible) lblBalance.setText("Account Balance : " + String.format("%.2f", currentBalance) + " MMK");
-                JOptionPane.showMessageDialog(this, "Successfully Deposited!");
+                long agentid = 0;
+
+                try {
+                    agentid = Long.parseLong(agent);
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "There's no Agent by this ID!");
+                    txtAgent.requestFocus();
+                    return;
+                }
+
+                if (accountDao.getAccountByAgentId(agentid) == null) {
+                    JOptionPane.showMessageDialog(this, "There's no Agent by this ID!");
+                    txtAgent.requestFocus();
+                    return;
+                }
+
+                moneyRequestDao.createMoneyRequest(customer.getCustomerId(), agentid, "DEPOSIT", amount, description);
+
+                JOptionPane.showMessageDialog(this, "Your Deposit request for " + amount + " is pending...");
                 txtAgent.setText("Enter ID"); txtAgent.setForeground(Color.GRAY);
                 txtAmount.setText("0");
+                txtDescription.setText("Optional note"); txtDescription.setForeground(Color.GRAY);
             } else {
                 JOptionPane.showMessageDialog(this, "Amount must be greater than 0.");
             }
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Please enter valid number for amount!");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
- 
+
     private JPanel createRoundedPanel(Color color) {
         JPanel panel = new JPanel() {
             protected void paintComponent(Graphics g) {
@@ -203,7 +281,7 @@ public class DepositPage extends JFrame {
         }
         public void setHoverBackgroundColor(Color color) { this.hoverBackgroundColor = color; }
         public void setPressedBackgroundColor(Color color) { this.pressedBackgroundColor = color; }
-        
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -219,8 +297,16 @@ public class DepositPage extends JFrame {
             super.paintComponent(g);
         }
     }
-    
+
+    public static void launch(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            new Login().setVisible(true);
+        } else {
+            new DepositPage(customer, customerDao).setVisible(true);
+        }
+    }
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new DepositPage().setVisible(true));
+        SwingUtilities.invokeLater(() -> DepositPage.launch(customer, customerDao));
     }
 }

@@ -4,12 +4,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
-import java.util.List;
 import java.sql.*;
-import bankify.DBConnection;
 import bankify.dao.CustomerDao;
-import bankify.Customer;
 import bankify.dao.AccountDao;
+import bankify.service.PageGuardService;
 
 public class HomePage extends JFrame {
 
@@ -18,12 +16,16 @@ public class HomePage extends JFrame {
     private JLabel balanceLabel;
     private boolean balanceVisible = true;
     private double balanceAmount = 0.00;
-    private Customer customer;
-    private CustomerDao customerDao;
-    private Account account;
+    private static Customer customer;
+    private static CustomerDao customerDao;
     private AccountDao accountDao;
 
     public HomePage(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
     	this.customer = customer ;
     	this.customerDao = customerDao;
     	this.accountDao = new AccountDao(DBConnection.getConnection());
@@ -64,7 +66,7 @@ public class HomePage extends JFrame {
         }
         userPanel.add(userIcon);
 
-        JLabel userLabel = new JLabel(customer.getFirstName()+""+customer.getLastName());
+        JLabel userLabel = new JLabel(customer.getFirstName() + " " +customer.getLastName());
         userLabel.setBounds(70, 22, 140, 35);
         userLabel.setForeground(Color.WHITE);
         userLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 22));
@@ -82,7 +84,7 @@ public class HomePage extends JFrame {
         if (phoneIconURL != null) {
             Image img = new ImageIcon(phoneIconURL).getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
             phoneIcon.setIcon(new ImageIcon(img));
-        } 
+        }
         phonePanel.add(phoneIcon);
 
         JLabel phoneLabel = new JLabel("Your Phone Number: "+ customer.getPhoneNumber());
@@ -106,24 +108,25 @@ public class HomePage extends JFrame {
             balanceIcon.setIcon(new ImageIcon(img));
         }
         balancePanel.add(balanceIcon);
+
+        balanceLabel = new JLabel("Account Balance: " + String.format("%.2f", balanceAmount) + " MMK");
+        balanceLabel.setBounds(75, 22, 370, 35);
+        balanceLabel.setForeground(Color.WHITE);
+        balanceLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 22));
+        balancePanel.add(balanceLabel);
         
      // Fetch balance from DB
-        List<Account> accounts = null;
+        Account account;
         try {
-            accounts = accountDao.getAccountsByCustomerId(customer.getCustomerId());
-            if (!accounts.isEmpty()) {
-                balanceAmount = accounts.get(0).getBalance();
+            account = accountDao.getAccountByCustomerId(customer.getCustomerId());
+            if (account != null) {
+                balanceAmount = account.getBalance();
                 balanceLabel.setText("Account Balance: " + String.format("%.2f", balanceAmount) + " MMK");
             }
         } catch (SQLException e) {
             e.printStackTrace(); // or show an error dialog
             balanceLabel.setText("Account Balance: Error loading");
         }
-        balanceLabel = new JLabel("Account Balance: " + String.format("%.2f", balanceAmount) + " MMK");
-        balanceLabel.setBounds(75, 22, 370, 35);
-        balanceLabel.setForeground(Color.WHITE);
-        balanceLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 22));
-        balancePanel.add(balanceLabel);
 
         JButton eyeButton = new JButton();
         eyeButton.setBounds(410, 22, 35, 35);
@@ -196,7 +199,7 @@ public class HomePage extends JFrame {
     }
 
     private void openDepositPage() {
-        DepositPage depositPage = new DepositPage();
+        DepositPage depositPage = new DepositPage(customer, customerDao);
         depositPage.setSize(1200, 800);
         depositPage.setLocationRelativeTo(null);
         depositPage.setVisible(true);
@@ -204,7 +207,7 @@ public class HomePage extends JFrame {
     }
 
     private void openWithdrawPage() {
-        WithdrawPage withdrawPage = new WithdrawPage();
+        WithdrawPage withdrawPage = new WithdrawPage(customer, customerDao);
         withdrawPage.setSize(1200, 800);
         withdrawPage.setLocationRelativeTo(null);
         withdrawPage.setVisible(true);
@@ -212,7 +215,7 @@ public class HomePage extends JFrame {
     }
 
     private void openTransferPage() {
-        TransferPage transferPage = new TransferPage();
+        TransferPage transferPage = new TransferPage(customer, customerDao);
         transferPage.setSize(1200, 800);
         transferPage.setLocationRelativeTo(null);
         transferPage.setVisible(true);
@@ -255,9 +258,18 @@ public class HomePage extends JFrame {
             super.paintComponent(g);
         }
     }
+
+    public static void launch(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            new Login().setVisible(true);
+        } else {
+            new HomePage(customer, customerDao).setVisible(true);
+        }
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new Login().setVisible(true);
+            HomePage.launch(customer, customerDao);
         });
     }
 

@@ -1,5 +1,10 @@
 package bankify;
 
+import bankify.dao.AccountDao;
+import bankify.dao.CustomerDao;
+import bankify.dao.MoneyRequestDao;
+import bankify.service.PageGuardService;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -11,10 +16,30 @@ public class WithdrawPage extends JFrame {
     private JLabel lblBalance;
     private JTextField txtAgent;
     private JTextField txtAmount;
+    private JTextField txtDescription;
+    private static Customer customer;
+    private static CustomerDao customerDao;
+    private Account account;
+    private AccountDao accountDao;
+    private MoneyRequestDao moneyRequestDao;
     private boolean balanceVisible = true;
-    private double currentBalance = 100000.0;
 
-    public WithdrawPage() {
+    public WithdrawPage(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
+        this.customer = customer ;
+        this.customerDao = customerDao;
+        this.accountDao = new AccountDao(DBConnection.getConnection());
+        this.moneyRequestDao = new MoneyRequestDao(DBConnection.getConnection());
+        try {
+            this.account = accountDao.getAccountByCustomerId(customer.getCustomerId());
+        } catch (Exception e) {
+            System.err.println("Can't find the account: " + e.getMessage());
+        }
+
         setTitle("Bankify - Withdraw");
         // Screen size updated to 1200x800
         setSize(1200, 800);
@@ -23,7 +48,7 @@ public class WithdrawPage extends JFrame {
         setLayout(new BorderLayout());
 
         // Sidebar
-        Sidebar sidebar = new Sidebar(this, "Withdraw");
+        Sidebar sidebar = new Sidebar(this, "Withdraw", customer, customerDao);
         JPanel contentPanel = createWithdrawContent();
 
         add(sidebar, BorderLayout.WEST);
@@ -33,11 +58,11 @@ public class WithdrawPage extends JFrame {
     // ================= Withdraw Content =================
     private JPanel createWithdrawContent() {
         JPanel panel = new JPanel();
-        panel.setBackground(new Color(30, 127, 179)); 
+        panel.setBackground(new Color(30, 127, 179));
         panel.setLayout(null);
 
         // User Profile Section
-        JPanel userPanel = createRoundedPanel(new Color(0, 191, 255)); 
+        JPanel userPanel = createRoundedPanel(new Color(0, 191, 255));
         userPanel.setBounds(70, 50, 220, 80);
         userPanel.setLayout(null);
 
@@ -45,7 +70,7 @@ public class WithdrawPage extends JFrame {
         lblUserIcon.setBounds(12, 14, 55, 55);
         userPanel.add(lblUserIcon);
 
-        JLabel lblUserName = new JLabel("Aung Aung");
+        JLabel lblUserName = new JLabel(customer.getFirstName() + " " + customer.getLastName());
         lblUserName.setForeground(Color.WHITE);
         lblUserName.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Increased Font Size
         lblUserName.setBounds(70, 22, 140, 35);
@@ -61,12 +86,12 @@ public class WithdrawPage extends JFrame {
         lblBalanceIcon.setBounds(20, 20, 43, 43);
         balancePanel.add(lblBalanceIcon);
 
-        lblBalance = new JLabel("Account Balance : " + String.format("%.2f", currentBalance) + " MMK");
+        lblBalance = new JLabel("Account Balance : " + String.format("%.2f", account.getBalance()) + " MMK");
         lblBalance.setForeground(Color.WHITE);
         lblBalance.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Increased Font Size
         lblBalance.setBounds(75, 22, 370, 35);
         balancePanel.add(lblBalance);
-        
+
         JButton eyeButton = new JButton();
         eyeButton.setBounds(410, 22, 35, 35);
         eyeButton.setContentAreaFilled(false); eyeButton.setBorderPainted(false); eyeButton.setFocusPainted(false);
@@ -82,7 +107,7 @@ public class WithdrawPage extends JFrame {
             eyeButton.addActionListener(e -> {
                 balanceVisible = !balanceVisible;
                 eyeButton.setIcon(balanceVisible ? eyeOpenIcon : eyeClosedIcon);
-                lblBalance.setText(balanceVisible ? "Account Balance : " + String.format("%.2f", currentBalance) + " MMK" : "Account Balance : ****** MMK");
+                lblBalance.setText(balanceVisible ? "Account Balance : " + String.format("%.2f", account.getBalance()) + " MMK" : "Account Balance : ****** MMK");
             });
         }
         balancePanel.add(eyeButton);
@@ -90,13 +115,13 @@ public class WithdrawPage extends JFrame {
 
         // Input Fields with better Font sizes
         JLabel lblAgent = new JLabel("Agent");
-        lblAgent.setBounds(70, 280, 100, 30);
+        lblAgent.setBounds(70, 265, 100, 30);
         lblAgent.setForeground(Color.WHITE);
         lblAgent.setFont(new Font("Tw Cen MT", Font.BOLD, 20)); // Increased Font Size
         panel.add(lblAgent);
 
         txtAgent = new JTextField();
-        txtAgent.setBounds(70, 320, 600, 55); 
+        txtAgent.setBounds(70, 305, 600, 55);
         txtAgent.setFont(new Font("Tw Cen MT", Font.PLAIN, 18));
         txtAgent.setForeground(Color.GRAY);
         txtAgent.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
@@ -108,13 +133,13 @@ public class WithdrawPage extends JFrame {
         panel.add(txtAgent);
 
         JLabel lblAmount = new JLabel("Amount");
-        lblAmount.setBounds(70, 400, 100, 30);
+        lblAmount.setBounds(70, 370, 100, 30);
         lblAmount.setForeground(Color.WHITE);
         lblAmount.setFont(new Font("Tw Cen MT", Font.BOLD, 20)); // Increased Font Size
         panel.add(lblAmount);
 
         txtAmount = new JTextField();
-        txtAmount.setBounds(70, 440, 600, 55);
+        txtAmount.setBounds(70, 410, 600, 55);
         txtAmount.setFont(new Font("Tw Cen MT", Font.BOLD, 20));
         txtAmount.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
         txtAmount.setText("0");
@@ -124,9 +149,37 @@ public class WithdrawPage extends JFrame {
         });
         panel.add(txtAmount);
 
+        JLabel lblDescription = new JLabel("Description");
+        lblDescription.setBounds(70, 480, 100, 30);
+        lblDescription.setForeground(Color.WHITE);
+        lblDescription.setFont(new Font("Tw Cen MT", Font.BOLD, 20)); // Increased Font Size
+        panel.add(lblDescription);
+
+        txtDescription = new JTextField();
+        txtDescription.setBounds(70, 520, 600, 55);
+        txtDescription.setFont(new Font("Tw Cen MT", Font.PLAIN, 18));
+        txtDescription.setForeground(Color.GRAY);
+        txtDescription.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        txtDescription.setText("Optional note");
+        txtDescription.addFocusListener(new FocusListener() {
+            public void focusGained(FocusEvent e) {
+                if (txtDescription.getText().equals("Optional note")) {
+                    txtDescription.setText("");
+                    txtDescription.setForeground(Color.BLACK);
+                }
+            }
+            public void focusLost(FocusEvent e) {
+                if (txtDescription.getText().isEmpty()) {
+                    txtDescription.setText("Optional note");
+                    txtDescription.setForeground(Color.GRAY);
+                }
+            }
+        });
+        panel.add(txtDescription);
+
         // Withdraw Button
         RoundedButton btnWithdraw = new RoundedButton("Withdraw");
-        btnWithdraw.setBounds(285, 550, 180, 60);
+        btnWithdraw.setBounds(285, 605, 180, 60);
         btnWithdraw.setBackground(new Color(220,20,60));
         btnWithdraw.setForeground(Color.WHITE);
         btnWithdraw.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Increased Font Size
@@ -140,30 +193,55 @@ public class WithdrawPage extends JFrame {
     private void handleWithdraw() {
         String agent = txtAgent.getText().trim();
         String amountStr = txtAmount.getText().trim();
+        String description = txtDescription.getText().trim();
 
         if (agent.isEmpty() || agent.equals("Enter ID")) {
             JOptionPane.showMessageDialog(this, "Please enter Agent ID.");
-            txtAgent.requestFocus(); return;
+            txtAgent.requestFocus();
+            return;
         }
         if (amountStr.isEmpty() || amountStr.equals("0")) {
             JOptionPane.showMessageDialog(this, "Please enter amount.");
-            txtAmount.requestFocus(); return;
+            txtAmount.requestFocus();
+            return;
         }
+
+        if (description.equals("Optional note")) description = "";
 
         try {
+            account = accountDao.getAccountByCustomerId(customer.getCustomerId()); // refresh account
             double amount = Double.parseDouble(amountStr);
-            if (amount <= 0) { JOptionPane.showMessageDialog(this, "Amount must be greater than 0."); return; }
-            if (amount > currentBalance) { JOptionPane.showMessageDialog(this, "Insufficient balance!"); return; }
+            if (amount <= 0) { JOptionPane.showMessageDialog(this, "Amount must be > 0."); return; }
+            if (amount > account.getBalance()) { JOptionPane.showMessageDialog(this, "Insufficient balance!"); return; }
 
-            currentBalance -= amount;
-            if (balanceVisible) lblBalance.setText("Account Balance : " + String.format("%.2f", currentBalance) + " MMK");
-            JOptionPane.showMessageDialog(this, "Withdraw successful : " + amount + " MMK");
+            long agentid = Long.parseLong(agent);
+
+            if (accountDao.getAccountByAgentId(agentid) == null) {
+                JOptionPane.showMessageDialog(this, "There's no Agent by this ID!");
+                txtAgent.requestFocus();
+                return;
+            }
+
+            moneyRequestDao.createMoneyRequest(customer.getCustomerId(), agentid, "WITHDRAW", amount, description);
+
+            JOptionPane.showMessageDialog(this, "Your withdraw request for " + amount + " is pending...");
+
+            // Reset fields
             txtAgent.setText("Enter ID"); txtAgent.setForeground(Color.GRAY);
             txtAmount.setText("0");
+            txtDescription.setText("Optional note"); txtDescription.setForeground(Color.GRAY);
+
+            // Optionally refresh balance label
+            if (balanceVisible) lblBalance.setText("Account Balance : " + String.format("%.2f", account.getBalance()) + " MMK");
+
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Please enter valid number for amount!");
+        } catch (Exception ex) {
+            ex.printStackTrace(); // show real error
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
         }
     }
+
 
     // ================= Helpers =================
     private JLabel createScaledImageLabel(String path, int w, int h) {
@@ -199,7 +277,7 @@ public class WithdrawPage extends JFrame {
         }
         public void setHoverBackgroundColor(Color color) { this.hoverBackgroundColor = color; }
         public void setPressedBackgroundColor(Color color) { this.pressedBackgroundColor = color; }
-        
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -217,6 +295,6 @@ public class WithdrawPage extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new WithdrawPage().setVisible(true));
+        SwingUtilities.invokeLater(() -> new WithdrawPage(customer, customerDao).setVisible(true));
     }
 }

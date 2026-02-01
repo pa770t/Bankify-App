@@ -96,10 +96,10 @@ public class Sidebar extends JPanel {
         // Action Listeners for navigation
         btn.addActionListener(e -> {
             if (text.equals("Home")) navigate(new HomePage( customer,customerDao));
-            else if (text.equals("Deposit")) navigate(new DepositPage());
-            else if (text.equals("Withdraw")) navigate(new WithdrawPage());
-            else if (text.equals("Transfer")) navigate(new TransferPage());
-            else if (text.equals("Settings")) navigate(new MainSettings());
+            else if (text.equals("Deposit")) navigate(new DepositPage(customer, customerDao));
+            else if (text.equals("Withdraw")) navigate(new WithdrawPage(customer, customerDao));
+            else if (text.equals("Transfer")) navigate(new TransferPage(customer, customerDao));
+            else if (text.equals("Settings")) navigate(new MainSettings(customer, customerDao));
             else if (text.equals("Transactions")) openTransactionsPage();
         });
 
@@ -128,7 +128,7 @@ public class Sidebar extends JPanel {
         transactionsFrame.setSize(1200, 800);
         CardLayout cardLayout = new CardLayout();
         JPanel content = new JPanel(cardLayout);
-        TransactionsPage tp = new TransactionsPage(cardLayout, content, transactionsFrame);
+        TransactionsPage tp = new TransactionsPage(cardLayout, content, transactionsFrame, customer, customerDao);
         content.add(tp, "Transactions");
         transactionsFrame.add(content);
         transactionsFrame.setLocationRelativeTo(parentFrame);

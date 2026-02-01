@@ -1,9 +1,15 @@
 package bankify;
 
+import bankify.dao.AccountDao;
+import bankify.dao.CustomerDao;
+import bankify.dao.TransferDao;
+import bankify.service.PageGuardService;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.sql.SQLException;
 
 public class TransferPage extends JFrame {
 
@@ -12,10 +18,22 @@ public class TransferPage extends JFrame {
     private JTextField txtTo;
     private JTextField txtAmount;
     private JTextField txtDescription;
+    private double balanceAmount;
+    private static Customer customer;
+    private static CustomerDao customerDao;
+    private AccountDao accountDao;
     private boolean balanceVisible = true;
-    private double currentBalance = 100000.0;
 
-    public TransferPage() {
+    public TransferPage(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
+        this.customer = customer ;
+        this.customerDao = customerDao;
+        this.accountDao = new AccountDao(DBConnection.getConnection());
+
         setTitle("Bankify - Transfer");
         // Screen size updated to 1200x800
         setSize(1200, 800);
@@ -23,7 +41,7 @@ public class TransferPage extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        Sidebar sidebar = new Sidebar(this, "Transfer");
+        Sidebar sidebar = new Sidebar(this, "Transfer", customer, customerDao);
 
         add(sidebar, BorderLayout.WEST);
         add(createTransferContent(), BorderLayout.CENTER);
@@ -43,7 +61,7 @@ public class TransferPage extends JFrame {
         lblUserIcon.setBounds(12, 14, 55, 55);
         userPanel.add(lblUserIcon);
 
-        JLabel lblUserName = new JLabel("Aung Aung");
+        JLabel lblUserName = new JLabel(customer.getFirstName() + " " + customer.getLastName());
         lblUserName.setForeground(Color.WHITE);
         lblUserName.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Font size increased
         lblUserName.setBounds(70, 22, 140, 35);
@@ -65,7 +83,7 @@ public class TransferPage extends JFrame {
         } 
         phonePanel.add(phoneIcon);
 
-        JLabel phoneLabel = new JLabel("Your Phone Number: +959123456789");
+        JLabel phoneLabel = new JLabel("Your Phone Number: +95" + customer.getPhoneNumber());
         phoneLabel.setBounds(70, 25, 395, 35);
         phoneLabel.setForeground(Color.WHITE);
         phoneLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 22));
@@ -81,11 +99,23 @@ public class TransferPage extends JFrame {
         lblBalanceIcon.setBounds(20, 20, 43, 43);
         balancePanel.add(lblBalanceIcon);
 
-        lblBalance = new JLabel("Account Balance : " + String.format("%.2f", currentBalance) + " MMK");
+        lblBalance = new JLabel("Account Balance : " + String.format("%.2f", balanceAmount) + " MMK");
         lblBalance.setForeground(Color.WHITE);
         lblBalance.setFont(new Font("Tw Cen MT", Font.BOLD, 22)); // Font size increased
         lblBalance.setBounds(75, 22, 370, 35);
         balancePanel.add(lblBalance);
+
+        Account account;
+        try {
+            account = this.accountDao.getAccountByCustomerId(customer.getCustomerId());
+            if (account != null) {
+                balanceAmount = account.getBalance();
+                lblBalance.setText("Account Balance: " + String.format("%.2f", balanceAmount) + " MMK");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // or show an error dialog
+            lblBalance.setText("Account Balance: Error loading");
+        }
         
         JButton eyeButton = new JButton();
         eyeButton.setBounds(410, 22, 35, 35);
@@ -104,7 +134,8 @@ public class TransferPage extends JFrame {
             eyeButton.addActionListener(e -> {
                 balanceVisible = !balanceVisible;
                 eyeButton.setIcon(balanceVisible ? eyeOpenIcon : eyeClosedIcon);
-                lblBalance.setText(balanceVisible ? "Account Balance : " + String.format("%.2f", currentBalance) + " MMK" : "Account Balance : ****** MMK");
+                lblBalance.setText(balanceVisible ? "Account Balance : " + String.format("%.2f", balanceAmount) + " MMK" :
+                        "Account Balance : ****** MMK");
             });
         }
         balancePanel.add(eyeButton);
@@ -224,29 +255,22 @@ public class TransferPage extends JFrame {
         // Validation
         if (phoneNumber.isEmpty() || phoneNumber.equals("Enter Phone Number")) {
             JOptionPane.showMessageDialog(this, "Please enter recipient Phone Number.");
-            txtTo.requestFocus(); 
+            txtTo.requestFocus();
             return;
         }
-        
+
         // Phone number validation - 10 digits only
         if (phoneNumber.length() != 10) {
             JOptionPane.showMessageDialog(this, "Phone number must be 10 digits.");
             txtTo.requestFocus();
             return;
         }
-        
-        
+
+
         if (!phoneNumber.matches("\\d{10}")) {
             JOptionPane.showMessageDialog(this, "Please enter a valid 10-digit phone number.");
             txtTo.requestFocus();
             return;
-        }
-        
-        // Complete phone number with +95
-        String to = "+95" + phoneNumber;
-        if (amountStr.isEmpty() || amountStr.equals("0")) {
-            JOptionPane.showMessageDialog(this, "Please enter amount.");
-            txtAmount.requestFocus(); return;
         }
 
         if (amountStr.isEmpty() || amountStr.equals("0")) {
@@ -256,24 +280,50 @@ public class TransferPage extends JFrame {
 
         try {
             double amount = Double.parseDouble(amountStr);
-            if (amount <= 0) { JOptionPane.showMessageDialog(this, "Amount must be greater than 0."); return; }
-            if (amount > currentBalance) { JOptionPane.showMessageDialog(this, "Insufficient balance!"); return; }
+            if (amount <= 0) {
+                JOptionPane.showMessageDialog(this, "Amount must be greater than 0.");
+                return;
+            }
+            if (amount > balanceAmount) {
+                JOptionPane.showMessageDialog(this, "Insufficient balance!");
+                return;
+            }
 
-            currentBalance -= amount;
-            if (balanceVisible) lblBalance.setText("Account Balance : " + String.format("%.2f", currentBalance)  );
-            
+            balanceAmount -= amount;
+            if (balanceVisible) lblBalance.setText("Account Balance : " + String.format("%.2f", balanceAmount));
+
             String description = txtDescription.getText().trim();
             if (description.equals("Optional note")) description = "";
-            String message = String.format("Successfully transferred %,.2f MMK to %s", amount, to);
-            if (!description.isEmpty()) message += "\nDescription: " + description;
-            
-            JOptionPane.showMessageDialog(this, message);
-            txtTo.setText("Enter ID"); txtTo.setForeground(Color.GRAY);
-            txtAmount.setText("0");
-            txtDescription.setText("Optional note"); txtDescription.setForeground(Color.GRAY);
 
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Please enter valid number for amount!");
+            Account account;
+            try {
+                account = accountDao.getAccountByNumber(phoneNumber);
+                if (!account.getStatus().equals("CLOSED")) {
+                    TransferDao transferDao = new TransferDao(DBConnection.getConnection());
+                    Transaction tx = transferDao.createTransfer(customer, Long.parseLong(phoneNumber), amount, description);
+
+                    if (tx != null) {
+                        String message = String.format("Successfully transferred %,.2f MMK to %s", amount, phoneNumber);
+                        if (!description.isEmpty()) message += "\nDescription: " + description;
+                        JOptionPane.showMessageDialog(this, message);
+                        txtTo.setText("Enter ID");
+                        txtTo.setForeground(Color.GRAY);
+                        txtAmount.setText("0");
+                        txtDescription.setText("Optional note");
+                        txtDescription.setForeground(Color.GRAY);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "No account found with this account number!");
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, "This account is currently closed! Try to connect in another way!");
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
+
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
         }
     }
 
@@ -335,8 +385,16 @@ public class TransferPage extends JFrame {
         }
     }
 
+    public static void launch(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            new Login().setVisible(true);
+        } else {
+            new TransferPage(customer, customerDao).setVisible(true);
+        }
+    }
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new TransferPage().setVisible(true));
+        SwingUtilities.invokeLater(() -> TransferPage.launch(customer, customerDao));
     }
 
 }

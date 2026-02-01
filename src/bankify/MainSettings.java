@@ -1,5 +1,8 @@
 package bankify;
 
+import bankify.dao.CustomerDao;
+import bankify.service.PageGuardService;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -7,11 +10,21 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 
 public class MainSettings extends JFrame {
+    private static Customer customer;
+    private static CustomerDao customerDao;
 
     private static final long serialVersionUID = 1L;
     private JPanel contentPanel;
 
-    public MainSettings() {
+    public MainSettings(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
+        this.customer = customer;
+        this.customerDao = customerDao;
+
         setTitle("Bankify - Settings");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -19,7 +32,7 @@ public class MainSettings extends JFrame {
         getContentPane().setLayout(new BorderLayout());
 
         // Sidebar
-        Sidebar sidebar = new Sidebar(this, "Settings");
+        Sidebar sidebar = new Sidebar(this, "Settings", customer, customerDao);
         contentPanel = createContentPanel();
 
         getContentPane().add(sidebar, BorderLayout.WEST);
@@ -138,22 +151,22 @@ public class MainSettings extends JFrame {
 
     // ===== Navigation Methods =====
     private void openMyProfilePage() {
-        new MyProfile().setVisible(true);
+        new MyProfile(customer, customerDao).setVisible(true);
         this.dispose();
     }
 
     private void openAccountTypePage() {
-        new AccountType().setVisible(true);
+        new AccountType(customer, customerDao).setVisible(true);
         this.dispose();
     }
 
     private void openChangePasswordPage() {
-        new ChangePassword().setVisible(true);
+        ChangePassword.launch(customer, customerDao);
         this.dispose();
     }
 
     private void openDeactivateAccountPage() {
-        new DeactivateAccount().setVisible(true);
+        DeactivateAccount.launch(customer, customerDao);
         this.dispose();
     }
     
@@ -162,6 +175,7 @@ public class MainSettings extends JFrame {
             this, "Are you sure you want to logout?", "Confirm Logout", JOptionPane.YES_NO_OPTION
         );
         if (confirm == JOptionPane.YES_OPTION) {
+            customer = null;
             this.dispose();
             new Login().setVisible(true); 
         }
@@ -200,7 +214,15 @@ public class MainSettings extends JFrame {
         @Override public void setBackground(Color bg) { currentColor = bg; repaint(); }
     }
 
+    public static void launch(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            new Login().setVisible(true);
+        } else {
+            new MainSettings(customer, customerDao).setVisible(true);
+        }
+    }
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new MainSettings().setVisible(true));
+        SwingUtilities.invokeLater(() -> MainSettings.launch(customer, customerDao));
     }
 }

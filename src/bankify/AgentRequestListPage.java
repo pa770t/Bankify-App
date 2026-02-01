@@ -1,16 +1,19 @@
 package bankify;
 
+import bankify.dao.AgentDao;
+import bankify.service.PageGuardService;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import bankify.dao.MoneyRequestDao;
+import bankify.dao.MoneyRequestDao.RequestItem;
 
 public class AgentRequestListPage extends JFrame {
 
@@ -18,8 +21,19 @@ public class AgentRequestListPage extends JFrame {
     private List<RequestItem> requestList;
     private JPanel listContainer;
     private JButton btnSort;
+    private static Agent agent;
+    private static AgentDao agentDao;
+    MoneyRequestDao moneyRequestDao = new MoneyRequestDao(DBConnection.getConnection());
 
-    public AgentRequestListPage() {
+    public AgentRequestListPage(Agent agent, AgentDao agentDao) {
+        if (agent == null) {
+            PageGuardService.checkSession(this, agent);
+            return;
+        }
+
+        this.agent = agent;
+        this.agentDao = agentDao;
+
         setTitle("Bankify - Request List");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -30,16 +44,11 @@ public class AgentRequestListPage extends JFrame {
         JPanel contentPanel = createBaseLayout();
         add(contentPanel, BorderLayout.CENTER);
         
-        refreshList();
+        refreshList(); // to be implemented
     }
 
     private void initData() {
-        requestList = new ArrayList<>();
-        // Amount Data များ ထည့်သွင်းထားပါသည်
-        requestList.add(new RequestItem("Maung Maung", "2026/01/20 10:30 AM", "100,000 MMK"));
-        requestList.add(new RequestItem("Aung Aung",   "2026/01/20 11:15 AM", "50,000 MMK"));
-        requestList.add(new RequestItem("Su Su",       "2026/01/19 04:45 PM", "250,000 MMK"));
-        requestList.add(new RequestItem("Kyaw Kyaw",   "2026/01/19 02:20 PM", "10,000 MMK"));
+        requestList = moneyRequestDao.getMoneyRequests(agent.getEmail());
     }
 
     private JPanel createBaseLayout() {
@@ -74,6 +83,39 @@ public class AgentRequestListPage extends JFrame {
         lblAgentText.setFont(new Font("Tw Cen MT", Font.BOLD, 28));
         pillPanel.add(lblAgentText);
         panel.add(pillPanel);
+
+        JButton btnRefresh = new JButton("Refresh") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(0, 191, 255));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+
+        try {
+            URL iconURL = getClass().getResource("/Resources/refresh.png");
+            if (iconURL != null) {
+                ImageIcon refreshIcon = new ImageIcon(new ImageIcon(iconURL).getImage()
+                        .getScaledInstance(20, 20, Image.SCALE_SMOOTH));
+                btnRefresh.setIcon(refreshIcon);
+                btnRefresh.setIconTextGap(10);
+            }
+        } catch (Exception e) {}
+
+        btnRefresh.setBounds(800, 85, 160, 45);
+        btnRefresh.setForeground(Color.WHITE);
+        btnRefresh.setFont(new Font("Tw Cen MT", Font.BOLD, 17));
+        btnRefresh.setContentAreaFilled(false);
+        btnRefresh.setBorderPainted(false);
+        btnRefresh.setFocusPainted(false);
+        btnRefresh.setHorizontalTextPosition(SwingConstants.RIGHT);
+        btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        btnRefresh.addActionListener(e -> refreshList());
 
         btnSort = new JButton("Sort By") {
             @Override
@@ -115,7 +157,7 @@ public class AgentRequestListPage extends JFrame {
         sortMenu.add(itemName);
 
         btnSort.addActionListener(e -> sortMenu.show(btnSort, 0, btnSort.getHeight()));
-        panel.add(btnSort);
+        panel.add(btnRefresh, btnSort);
 
         listContainer = new JPanel();
         listContainer.setBounds(0, 180, 1200, 600);
@@ -127,23 +169,24 @@ public class AgentRequestListPage extends JFrame {
     }
 
     private void sortByName() {
-        Collections.sort(requestList, Comparator.comparing(item -> item.name));
+        Collections.sort(requestList, Comparator.comparing(item -> item.customerName));
         btnSort.setText("By Name");
         refreshList();
     }
 
     private void sortByDate() {
-        Collections.sort(requestList, (o1, o2) -> o2.dateTimeObj.compareTo(o1.dateTimeObj));
+        Collections.sort(requestList, (o1, o2) -> o2.requested_at.compareTo(o1.requested_at));
         btnSort.setText("By Date");
         refreshList();
     }
 
     private void refreshList() {
         listContainer.removeAll();
+        requestList = moneyRequestDao.getMoneyRequests(agent.getEmail());
         int startY = 10;
         for (RequestItem item : requestList) {
             // createRequestItem ဆီသို့ amount ပါ ပို့ပေးလိုက်ပါသည်
-            JPanel itemPanel = createRequestItem(item.name, item.dateStr, item.amount, 600, 90);
+            JPanel itemPanel = createRequestItem(item.customerName, item.requested_at, item.amount, item.request_type, 600, 90);
             itemPanel.setBounds(300, startY, 600, 90);
             
             itemPanel.addMouseListener(new MouseAdapter() {
@@ -151,7 +194,8 @@ public class AgentRequestListPage extends JFrame {
                 public void mouseClicked(MouseEvent e) {
                     dispose();
                     // depositAgent constructor တွင် amount ပါ ထည့်ပေးရပါမည်
-                    new depositAgent(item.name, item.dateStr, item.amount).setVisible(true);
+//                    new depositAgent(item.customerName, item.requested_at, String.format("%,.0f", item.amount)).setVisible(true);
+                    new depositAgent(item, agent, agentDao).setVisible(true);
                 }
             });
             listContainer.add(itemPanel);
@@ -161,7 +205,8 @@ public class AgentRequestListPage extends JFrame {
         listContainer.repaint();
     }
 
-    private JPanel createRequestItem(String name, String date, String amount, int width, int height) {
+    private JPanel createRequestItem(String name, String date, double amount, String requestType, int width,
+                                     int height) {
         JPanel p = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -175,7 +220,11 @@ public class AgentRequestListPage extends JFrame {
                 int amPillH = 40;
                 int amX = getWidth() - amPillW - 30;
                 int amY = (getHeight() - amPillH) / 2;
-                g2.setColor(new Color(50, 205, 50)); // Green Color
+                if (requestType.equals("DEPOSIT")) {
+                    g2.setColor(new Color(201, 38, 38)); // Red Color
+                } else if (requestType.equals("WITHDRAW")) {
+                    g2.setColor(new Color(50, 205, 50)); // Green Color
+                }
                 g2.fillRoundRect(amX, amY, amPillW, amPillH, amPillH, amPillH);
                 
                 g2.dispose();
@@ -194,14 +243,14 @@ public class AgentRequestListPage extends JFrame {
         lblName.setBounds(90, 15, 300, 30);
         p.add(lblName);
 
-        JLabel lblDate = new JLabel(date);
+        JLabel lblDate = new JLabel(String.valueOf(date));
         lblDate.setFont(new Font("Tw Cen MT", Font.PLAIN, 18));
         lblDate.setForeground(Color.GRAY);
         lblDate.setBounds(90, 48, 300, 25);
         p.add(lblDate);
 
         // --- Amount Text အစိမ်းရောင်အကွက်ပေါ်တင်ရန် ---
-        JLabel lblAmount = new JLabel(amount, SwingConstants.CENTER);
+        JLabel lblAmount = new JLabel(String.valueOf(amount), SwingConstants.CENTER);
         lblAmount.setFont(new Font("Tw Cen MT", Font.BOLD, 16));
         lblAmount.setForeground(Color.WHITE);
         lblAmount.setBounds(600 - 140 - 30, (90-40)/2, 140, 40);
@@ -218,22 +267,15 @@ public class AgentRequestListPage extends JFrame {
         return new JLabel();
     }
 
-    class RequestItem {
-        String name;
-        String dateStr;
-        String amount;
-        LocalDateTime dateTimeObj;
-        public RequestItem(String name, String dateStr, String amount) {
-            this.name = name;
-            this.dateStr = dateStr;
-            this.amount = amount;
-            try {
-                this.dateTimeObj = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm a"));
-            } catch (Exception e) { this.dateTimeObj = LocalDateTime.MIN; }
+    public static void launch(Agent agent, AgentDao agentDao) {
+        if (agent == null) {
+            new AgentLogin().setVisible(true);
+        } else {
+            new AgentRequestListPage(agent, agentDao).setVisible(true);
         }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AgentRequestListPage().setVisible(true));
+        SwingUtilities.invokeLater(() -> AgentRequestListPage.launch(agent, agentDao));
     }
 }

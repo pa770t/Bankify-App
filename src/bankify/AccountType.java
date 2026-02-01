@@ -5,15 +5,21 @@ import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
 import bankify.dao.CustomerDao;
+import bankify.service.PageGuardService;
 
 public class AccountType extends JFrame {
 
     private static final long serialVersionUID = 1L;
     private JPanel contentPanel;
-    private Customer customer;
-    private CustomerDao customerDao;
+    private static Customer customer;
+    private static CustomerDao customerDao;
 
     public AccountType(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
     	this.customer = customer;
     	this.customerDao = customerDao;
         setTitle("Bankify - Account Type");
@@ -140,7 +146,7 @@ public class AccountType extends JFrame {
         }
         btnBack.addActionListener(e -> {
             dispose();
-            new MainSettings().setVisible(true);
+            new MainSettings(customer, customerDao).setVisible(true);
         });
         contentPanel.add(btnBack);
 
@@ -150,7 +156,7 @@ public class AccountType extends JFrame {
         btnOK.setBounds(375, 460, 120, 50);
         btnOK.addActionListener(e -> {
             dispose(); // လက်ရှိ frame ကို ပိတ်မယ်
-            new MainSettings().setVisible(true); // settings_main page ကို ဖွင့်မယ်
+            new MainSettings(customer, customerDao).setVisible(true); // settings_main page ကို ဖွင့်မယ်
         });
         contentPanel.add(btnOK);
 

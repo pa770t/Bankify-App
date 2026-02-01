@@ -6,9 +6,11 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.CompoundBorder;
 import java.awt.event.*;
+import java.sql.SQLException;
 import java.util.regex.Pattern;
-import java.util.regex.Matcher; 
+import java.util.regex.Matcher;
 
+import bankify.dao.AccountDao;
 import bankify.service.AuthService;
 import bankify.dao.CustomerDao;
 import bankify.Customer;
@@ -245,13 +247,14 @@ public class Register extends JFrame {
                     newCustomer.setPassword(pass);
                     newCustomer.setFirstTimeLogin(true); // mark as first-time
 
-                    boolean success = auth.register(newCustomer);
+                    Customer registeredCustomer = auth.register(newCustomer);
 
-                    if (success) {
+                    if (registeredCustomer != null) {
                         JOptionPane.showMessageDialog(null, "Registration Successful!");
                         dispose();
                         // Pass the customer object into MyProfile so it auto-fills
-                        new MyProfile(newCustomer, dao).setVisible(true);
+                        // Get the customer saved in the database
+                        new MyProfile(registeredCustomer, dao).setVisible(true);
                     } else {
                         JOptionPane.showMessageDialog(null, "Registration failed. Try again.");
                     }

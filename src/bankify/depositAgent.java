@@ -1,23 +1,30 @@
 package bankify;
 
+import bankify.dao.AgentDao;
+import bankify.dao.MoneyRequestDao;
+
 import javax.swing.*;
 import java.awt.*;
 import java.net.URL;
 
 public class depositAgent extends JFrame {
 
-    private String userName, dateTime, amount;
+    private static Agent agent;
+    private static AgentDao agentDao;
+    MoneyRequestDao moneyRequestDao;
+    private static MoneyRequestDao.RequestItem item;
 
-    public depositAgent(String name, String date, String amount) {
-        this.userName = name; this.dateTime = date; this.amount = amount;
+    public depositAgent(MoneyRequestDao.RequestItem item, Agent agent, AgentDao agentDao) {
+        this.moneyRequestDao = new MoneyRequestDao(DBConnection.getConnection());
+        depositAgent.item = item;
+        depositAgent.agent = agent;
+        depositAgent.agentDao = agentDao;
         setupFrame();
     }
 
-    public depositAgent() { this("Maung Maung", "2026/01/20 10:30 AM", "100,000 MMK"); }
-
     private void setupFrame() {
         setTitle("Bankify - Agent Approval");
-        setSize(1200, 800);
+        setSize(1200, 1000);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -44,7 +51,7 @@ public class depositAgent extends JFrame {
         btnBack.setBounds(pillX - 150, pillY + 5, 50, 50);
         btnBack.setContentAreaFilled(false); btnBack.setBorderPainted(false);
         btnBack.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnBack.addActionListener(e -> { dispose(); new AgentRequestListPage().setVisible(true); });
+        btnBack.addActionListener(e -> { dispose(); new AgentRequestListPage(agent, agentDao).setVisible(true); });
         panel.add(btnBack);
 
         // --- Agent Pill ---
@@ -66,25 +73,35 @@ public class depositAgent extends JFrame {
 
         // --- Fields ---
         int cW = 500, cX = (1200 - cW) / 2;
-        createReadOnlyField(panel, "User ID", "987654", cX, 180, cW);
-        createReadOnlyField(panel, "User Name", userName, cX, 280, cW);
-        createReadOnlyField(panel, "Amount", amount, cX, 380, cW);
-        createReadOnlyField(panel, "Date & Time", dateTime, cX, 480, cW);
+        createReadOnlyField(panel, "User ID", String.valueOf(item.request_from), cX, 180, cW);
+        createReadOnlyField(panel, "User Name", item.customerName, cX, 280, cW);
+        createReadOnlyField(panel, "Amount", String.format("%,.0f", item.amount), cX, 380, cW);
+        createReadOnlyField(panel, "Type", item.request_type, cX, 480, cW);
+        createReadOnlyField(panel, "Description", item.description, cX, 580, cW);
+        createReadOnlyField(panel, "Date & Time", String.valueOf(item.requested_at), cX, 680, cW);
 
         // --- Accept & Deny Logic ---
         RoundedButton btnAccept = new RoundedButton("Accept");
-        btnAccept.setBounds(cX, 610, 220, 60); btnAccept.setBackground(new Color(50, 205, 50));
+        btnAccept.setBounds(cX, 800, 220, 60); btnAccept.setBackground(new Color(50, 205, 50));
         btnAccept.addActionListener(e -> {
             int res = JOptionPane.showConfirmDialog(this, "Approve this request?", "Confirm", JOptionPane.OK_CANCEL_OPTION);
-            if (res == JOptionPane.OK_OPTION) { dispose(); new AgentRequestListPage().setVisible(true); }
+            if (res == JOptionPane.OK_OPTION) {
+                dispose();
+                acceptRequest();
+                new AgentRequestListPage(agent, agentDao).setVisible(true);
+            }
         });
         panel.add(btnAccept);
 
         RoundedButton btnDeny = new RoundedButton("Deny");
-        btnDeny.setBounds(cX + 280, 610, 220, 60); btnDeny.setBackground(new Color(220, 20, 60));
+        btnDeny.setBounds(cX + 280, 800, 220, 60); btnDeny.setBackground(new Color(220, 20, 60));
         btnDeny.addActionListener(e -> {
             int res = JOptionPane.showConfirmDialog(this, "Deny this request?", "Confirm", JOptionPane.OK_CANCEL_OPTION);
-            if (res == JOptionPane.OK_OPTION) { dispose(); new AgentRequestListPage().setVisible(true); }
+            if (res == JOptionPane.OK_OPTION) {
+                dispose();
+                denyRequest();
+                new AgentRequestListPage(agent, agentDao).setVisible(true);
+            }
         });
         panel.add(btnDeny);
 
@@ -126,5 +143,23 @@ public class depositAgent extends JFrame {
         }
     }
 
-    public static void main(String[] args) { SwingUtilities.invokeLater(() -> new depositAgent().setVisible(true)); }
+    private void acceptRequest() {
+        if (item.status.equals("PENDING")) {
+        this.moneyRequestDao.acceptOrDenyRequest(item.request_id, "ACCEPT");
+        new depositAgent(item, agent, agentDao);
+        } else {
+            JOptionPane.showMessageDialog(null, "You already done this!");
+        }
+    }
+
+    private void denyRequest() {
+        if (item.status.equals("PENDING")) {
+            this.moneyRequestDao.acceptOrDenyRequest(item.request_id, "DENY");
+            new depositAgent(item, agent, agentDao);
+        } else {
+            JOptionPane.showMessageDialog(null, "You already done this!");
+        }
+    }
+
+    public static void main(String[] args) { SwingUtilities.invokeLater(() -> new depositAgent(item, agent, agentDao).setVisible(true)); }
 }

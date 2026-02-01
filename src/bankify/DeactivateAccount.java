@@ -1,5 +1,10 @@
 package bankify;
 
+import bankify.dao.AccountDao;
+import bankify.dao.CustomerDao;
+import bankify.service.PageGuardService;
+import org.mindrot.jbcrypt.BCrypt;
+
 import javax.swing.*;
 
 
@@ -7,8 +12,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.sql.SQLException;
 
 public class DeactivateAccount extends JFrame {
+
+    private static Customer customer;
+    private static CustomerDao customerDao;
 
     private static final long serialVersionUID = 1L;
     private JPanel contentPanel;
@@ -18,7 +27,15 @@ public class DeactivateAccount extends JFrame {
  // Error & Success Labels
     private JLabel errPassword;
 
-    public DeactivateAccount() {
+    public DeactivateAccount(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
+        this.customer = customer;
+        this.customerDao = customerDao;
+
         setTitle("Bankify - Deactivate Account");
         // Screen Size ပြောင်းလဲခြင်း
         setSize(1200, 800);
@@ -27,7 +44,7 @@ public class DeactivateAccount extends JFrame {
         getContentPane().setLayout(new BorderLayout());
 
      // Sidebar
-        Sidebar sidebar = new Sidebar(this, "Settings");
+        Sidebar sidebar = new Sidebar(this, "Settings", customer, customerDao);
 
 
         // Content
@@ -107,7 +124,7 @@ public class DeactivateAccount extends JFrame {
         btnCancel.setBounds(300, 480, 120, 50);
         btnCancel.addActionListener(e -> {
             dispose();
-            new MainSettings().setVisible(true);
+            MainSettings.launch(customer, customerDao);
         });
         contentPanel.add(btnCancel);
 
@@ -117,27 +134,10 @@ public class DeactivateAccount extends JFrame {
         btnOK.setBounds(480, 480, 120, 50);
         
         btnOK.addActionListener(e -> {
-            // Step 1: Validate password first
-            if (!validatePassword()) return;
-
-            // Step 2: Confirm deactivation
-            int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Are you sure you want to deactivate your account?",
-                "Confirm Deactivation",
-                JOptionPane.YES_NO_OPTION
-            );
-
-            // Step 3: Deactivate if confirmed
-            if (confirm == JOptionPane.YES_OPTION) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Your account has been deactivated.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
-                dispose(); // Close current window
-                new Login().setVisible(true); // Open login page
+            try {
+                handleDeactivateAccount();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
             }
         });
 
@@ -192,54 +192,29 @@ public class DeactivateAccount extends JFrame {
         return panel;
     }
 
-    private void deactivateAccount() {
-        if (!validatePassword()) return;
+    private void handleDeactivateAccount() throws SQLException {
+        // Get password as char array
+        char[] passwordChars = pwtPassword.getPassword();
+
+        // Convert to String
+        String password = new String(passwordChars).trim();
+
+        if (!BCrypt.checkpw(password, customer.getPassword())) {
+            errPassword.setText("Password is incorrect!");
+            return;
+        }
+
         int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to deactivate your account?", "Confirm Deactivation", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            JOptionPane.showMessageDialog(this, "Your account has been deactivated.", "Success", JOptionPane.INFORMATION_MESSAGE);
-            dispose();
-            new Login().setVisible(true);
-        }
-    }
-
-    private RoundedButton createMenuButton(String text, String iconPath) {
-        RoundedButton btn = new RoundedButton(text);
-        URL iconURL = getClass().getResource(iconPath);
-        if (iconURL != null) {
-            ImageIcon icon = new ImageIcon(iconURL);
-            Image img = icon.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
-            btn.setIcon(new ImageIcon(img));
-        }
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(250, 60));
-        btn.setPreferredSize(new Dimension(250, 60));
-        btn.setBackground(new Color(30,127,179));
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        btn.setHorizontalTextPosition(SwingConstants.RIGHT);
-        btn.setIconTextGap(15);
-        btn.setFocusPainted(false);
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { btn.setBackground(new Color(20,100,150)); }
-            public void mouseExited(MouseEvent e) { btn.setBackground(new Color(30,127,179)); }
-        });
-        return btn;
-    }
-
-    private class RoundedButton extends JButton {
-        public RoundedButton(String text) {
-            super(text);
-            setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false); setOpaque(false);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        }
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(getBackground());
-            g2.fillRoundRect(0,0,getWidth(),getHeight(),getHeight(),getHeight());
-            g2.dispose();
-            super.paintComponent(g);
+            AccountDao accountDao = new AccountDao(DBConnection.getConnection());
+            Account account = accountDao.getAccountByNumber(customer.getPhoneNumber());
+            boolean deactivated = accountDao.deactivateAccount(account.getAccountId());
+            if (deactivated) {
+                JOptionPane.showMessageDialog(this, "Your account has been deactivated.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                customer = null;
+                dispose();
+                new Login().setVisible(true);
+            }
         }
     }
 
@@ -284,27 +259,15 @@ public class DeactivateAccount extends JFrame {
         }
     }
 
-    private boolean validatePassword() {
-        String password = new String(pwtPassword.getPassword());
-        
-        if (password.isEmpty()) {
-            errPassword.setText("Password is required!");
-            return false;
+    public static void launch(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            new Login().setVisible(true);
+        } else {
+            new DeactivateAccount(customer, customerDao).setVisible(true);
         }
-        
-        if (!password.equals("Aung1234@@")) {
-            errPassword.setText("Incorrect password!");
-            return false;
-        }
-        
-        errPassword.setText(""); // Correct password → clear error
-        return true;
     }
 
-
-    
-
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new DeactivateAccount().setVisible(true));
+        SwingUtilities.invokeLater(() -> DeactivateAccount.launch(customer, customerDao));
     }
 }

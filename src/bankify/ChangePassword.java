@@ -1,5 +1,10 @@
 package bankify;
 
+import bankify.dao.CustomerDao;
+import bankify.service.AuthService;
+import bankify.service.PageGuardService;
+import org.mindrot.jbcrypt.BCrypt;
+
 import javax.swing.*;
 
 
@@ -9,6 +14,8 @@ import java.awt.event.*;
 import java.net.URL;
 
 public class ChangePassword extends JFrame {
+    private static Customer customer;
+    private static CustomerDao customerDao;
 
     private static final long serialVersionUID = 1L;
     private JPanel contentPanel;
@@ -18,7 +25,15 @@ public class ChangePassword extends JFrame {
  // Error & Success Labels
     private JLabel errCurrent, errNew, errConfirm, successLabel;
 
-    public ChangePassword() {
+    public ChangePassword(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            PageGuardService.checkSession(this, customer);
+            return;
+        }
+
+        this.customer = customer;
+        this.customerDao = customerDao;
+
         setTitle("Bankify - Change Password");
         // Screen Size ပြောင်းလဲခြင်း
         setSize(1200, 800);
@@ -27,7 +42,7 @@ public class ChangePassword extends JFrame {
         getContentPane().setLayout(new BorderLayout());
 
      // Sidebar
-        Sidebar sidebar = new Sidebar(this, "Settings");
+        Sidebar sidebar = new Sidebar(this, "Settings", customer, customerDao);
 
         // Content
         contentPanel = createContentPanel();
@@ -36,8 +51,7 @@ public class ChangePassword extends JFrame {
         getContentPane().add(contentPanel, BorderLayout.CENTER);
     }
 
-    
-        
+
     private JPanel createContentPanel() {
         JPanel contentPanel = new JPanel();
         contentPanel.setBackground(new Color(30,127,179));
@@ -137,7 +151,7 @@ public class ChangePassword extends JFrame {
         btnCancel.setBounds(310, 550, 120, 50);
         btnCancel.addActionListener(e -> {
             dispose();
-            new MainSettings().setVisible(true);
+            MainSettings.launch(customer, customerDao);
         });
         contentPanel.add(btnCancel);
         
@@ -146,28 +160,29 @@ public class ChangePassword extends JFrame {
         btnOK.setBounds(500, 550, 120, 50);
         btnOK.setFont(new Font("Tw Cen MT", Font.BOLD, 18)); // Button font 18
         btnOK.addActionListener(e -> {
-        	errCurrent.setText("");
+            errCurrent.setText("");
             errNew.setText("");
             errConfirm.setText("");
             successLabel.setText("");
 
-            String current = new String(pwtCurrent.getPassword());
-            String newPass = new String(pwtNew.getPassword());
-            String confirm = new String(pwtConfirm.getPassword());
+            String current = new String(pwtCurrent.getPassword()).trim();
+            String newPass = new String(pwtNew.getPassword()).trim();
+            String confirm = new String(pwtConfirm.getPassword()).trim();
 
             boolean hasError = false;
-            String savedPassword = "Aung1234@@"; // dummy
 
+            // 1️⃣ Check current password
             if (current.isEmpty()) {
                 errCurrent.setText("Please enter current password!");
                 hasError = true;
-            } else if (!current.equals(savedPassword)) {
+            } else if (!BCrypt.checkpw(current, customer.getPassword())) {
+                // Use BCrypt check for hashed password
                 errCurrent.setText("Current password is incorrect!");
                 hasError = true;
             }
 
-            String strongPattern =
-                    "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$";
+            // 2️⃣ Validate new password
+            String strongPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$";
 
             if (newPass.isEmpty()) {
                 errNew.setText("Please enter new password!");
@@ -177,6 +192,7 @@ public class ChangePassword extends JFrame {
                 hasError = true;
             }
 
+            // 3️⃣ Confirm password
             if (confirm.isEmpty()) {
                 errConfirm.setText("Please confirm password!");
                 hasError = true;
@@ -185,13 +201,23 @@ public class ChangePassword extends JFrame {
                 hasError = true;
             }
 
+            // 4️⃣ Save new password if no errors
             if (!hasError) {
-                successLabel.setText("Password changed successfully!");
-                pwtCurrent.setText("");
-                pwtNew.setText("");
-                pwtConfirm.setText("");
+                try {
+                    AuthService auth = new AuthService(customerDao); // calls CustomerDao.updatePassword internally
+                    auth.changePassword(customer.getCustomerId(), current, newPass);
+
+                    successLabel.setText("Password changed successfully!");
+                    pwtCurrent.setText("");
+                    pwtNew.setText("");
+                    pwtConfirm.setText("");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    errCurrent.setText("Error updating password!");
+                }
             }
         });
+
 
         contentPanel.add(btnOK);
 
@@ -247,52 +273,6 @@ public class ChangePassword extends JFrame {
         return panel;
     }
 
-    private RoundedButton createMenuButton(String text, String iconPath) {
-        RoundedButton btn = new RoundedButton(text);
-        URL iconURL = getClass().getResource(iconPath);
-        if (iconURL != null) {
-            ImageIcon icon = new ImageIcon(iconURL);
-            Image img = icon.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
-            btn.setIcon(new ImageIcon(img));
-        }
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(250, 60));
-        btn.setPreferredSize(new Dimension(250, 60));
-        btn.setBackground(new Color(30,127,179));
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        btn.setHorizontalTextPosition(SwingConstants.RIGHT);
-        btn.setIconTextGap(15);
-        btn.setFocusPainted(false);
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { btn.setBackground(new Color(20,100,150)); }
-            public void mouseExited(MouseEvent e) { btn.setBackground(new Color(30,127,179)); }
-        });
-        return btn;
-    }
-
-    private class RoundedButton extends JButton {
-        private static final long serialVersionUID = 1L;
-        public RoundedButton(String text) {
-            super(text);
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setFocusPainted(false);
-            setOpaque(false);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        }
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(getBackground());
-            g2.fillRoundRect(0,0,getWidth(),getHeight(),getHeight(),getHeight());
-            g2.dispose();
-            super.paintComponent(g);
-        }
-        @Override protected void paintBorder(Graphics g) {}
-    }
-
     private class RoundedCornerButton extends JButton {
         private final Color baseColor;
         private Color currentColor;
@@ -337,56 +317,15 @@ public class ChangePassword extends JFrame {
         }
     }
 
-    private boolean validatePassword() {
-        String current = new String(pwtCurrent.getPassword());
-        String newPass = new String(pwtNew.getPassword());
-        String confirm = new String(pwtConfirm.getPassword());
-
-        if (current.isEmpty() || newPass.isEmpty() || confirm.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "All fields are required!", "Error", JOptionPane.ERROR_MESSAGE);
-            return false;
+    public static void launch(Customer customer, CustomerDao customerDao) {
+        if (customer == null) {
+            new Login().setVisible(true);
+        } else {
+            new ChangePassword(customer, customerDao).setVisible(true);
         }
-
-        String strongPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$";
-        if (!newPass.matches(strongPattern)) {
-            JOptionPane.showMessageDialog(this, "Password must be at least 8 characters with upper, lower, number and special char.", "Weak Password", JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
-
-        if (!newPass.equals(confirm)) {
-            JOptionPane.showMessageDialog(this, "Passwords do not match!", "Mismatch", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-
-        String savedPassword = "Aung1234@@"; // dummy
-        if (!current.equals(savedPassword)) {
-            JOptionPane.showMessageDialog(this, "Current password is incorrect!", "Error", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        return true;
     }
-
-    private void openHomePage() { new HomePage().setVisible(true); this.dispose(); }
-    private void openDepositPage() { new DepositPage().setVisible(true); this.dispose(); }
-    private void openWithdrawPage() { new WithdrawPage().setVisible(true); this.dispose(); }
-    private void openTransferPage() { new TransferPage().setVisible(true); this.dispose(); }
-    private void openTransactionsPage() {
-        SwingUtilities.invokeLater(() -> {
-            JFrame transactionsFrame = new JFrame("Bankify - Transactions");
-            transactionsFrame.setSize(1200, 800);
-            CardLayout cardLayout = new CardLayout();
-            JPanel contentPanel = new JPanel(cardLayout);
-            TransactionsPage transactionsPage = new TransactionsPage(cardLayout, contentPanel, transactionsFrame);
-            contentPanel.add(transactionsPage, "Transactions");
-            transactionsFrame.getContentPane().add(contentPanel);
-            transactionsFrame.setLocationRelativeTo(this);
-            transactionsFrame.setVisible(true);
-            this.dispose();
-        });
-    }
-    private void openSettingsPage() { new MainSettings().setVisible(true); this.dispose(); }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ChangePassword().setVisible(true));
+        SwingUtilities.invokeLater(() -> ChangePassword.launch(customer, customerDao));
     }
 }

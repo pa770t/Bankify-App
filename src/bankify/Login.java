@@ -2,10 +2,10 @@ package bankify;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.SQLException;
 import javax.swing.border.EmptyBorder;
 
 import bankify.service.AuthService;
-import bankify.Customer;
 import bankify.dao.CustomerDao;
 
 public class Login extends JFrame {
@@ -19,8 +19,7 @@ public class Login extends JFrame {
     private JLabel errEmail, errPass;
 
     public Login() {
-    	 System.out.println("Login constructor started"); // 🔥 ADD
-    	 DBConnection.getConnection();                     // 🔥 ADD
+        DBConnection.getConnection();
         setTitle("Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 650);
@@ -136,7 +135,7 @@ public class Login extends JFrame {
         // ===== Login Button =====
         JButton btnLogin = new JButton("Login");
         btnLogin.setBackground(new Color(30, 127, 179));
-        btnLogin.setForeground(Color.BLACK);
+        btnLogin.setForeground(Color.WHITE);
         btnLogin.setFont(new Font("Tw Cen MT", Font.BOLD, 24));
         btnLogin.setBounds(70, 390, 300, 45);
         btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -244,7 +243,12 @@ public class Login extends JFrame {
             }
 
             if (!hasError) {
-                Customer customer = auth.authenticate(email, password);
+                Customer customer = null;
+                try {
+                    customer = auth.authenticate(email, password);
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
 
                 if (customer != null) {
                     dispose();

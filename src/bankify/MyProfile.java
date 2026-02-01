@@ -3,14 +3,8 @@ package bankify;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
 import javax.swing.text.*;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DocumentFilter;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.time.LocalDate;
 import java.util.regex.Pattern;
@@ -60,6 +54,14 @@ public class MyProfile extends JFrame {
 
         textField_4.setText(customer.getEmail());
         textField_4.setEditable(false);
+
+        if (customer.getPassword() != null) {
+            textField_3.setText(customer.getAddress());
+        }
+
+        if (customer.getPhoneNumber() != null) {
+            textField_5.setText(customer.getPhoneNumber());
+        }
     }
 
     private JPanel createContentPanel() {
@@ -100,8 +102,6 @@ public class MyProfile extends JFrame {
         settingsHeaderPanel.add(settingsLabel);
 
         contentPanel.add(settingsHeaderPanel);
-
-
 
         Font labelFont = new Font("Tw Cen MT", Font.BOLD, 18);
         Font fieldFont = new Font("Tw Cen MT", Font.PLAIN, 18);
@@ -367,6 +367,10 @@ public class MyProfile extends JFrame {
             if (success) {
                 JOptionPane.showMessageDialog(this, "Profile saved successfully!");
                 disableTextFields();
+                AccountDao accountDao = new AccountDao(DBConnection.getConnection());
+                if (customer.isFirstTimeLogin()) {
+                accountDao.createAccount(customer);
+                }
                 dispose(); // close profile window
                 new HomePage(customer,customerDao).setVisible(true);
 

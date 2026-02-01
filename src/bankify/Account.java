@@ -3,6 +3,7 @@ package bankify;
 public class Account {
         private long accountId;          // BIGINT AUTO_INCREMENT
         private long customerId;         // FK to customer
+        private long agentId;            // Fk to employee
         private String accountNumber;    // VARCHAR(20) UNIQUE
         private double balance;          // DECIMAL(15,2)
         private String accountType;      // ENUM('USER','AGENT')
@@ -12,10 +13,11 @@ public class Account {
         // Constructors
         public Account() {}
 
-        public Account(long accountId, long customerId, String accountNumber,
+        public Account(long accountId, long customerId, long agentId, String accountNumber,
                        double balance, String accountType, String status,
                        java.sql.Timestamp createdAt) {
             this.accountId = accountId;
+            this.agentId = agentId;
             this.customerId = customerId;
             this.accountNumber = accountNumber;
             this.balance = balance;
@@ -30,6 +32,9 @@ public class Account {
 
         public long getCustomerId() { return customerId; }
         public void setCustomerId(long customerId) { this.customerId = customerId; }
+
+        public long getAgentId() { return agentId; }
+        public void setAgentId(long agentId) { this.agentId = agentId; }
 
         public String getAccountNumber() { return accountNumber; }
         public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }

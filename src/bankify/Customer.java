@@ -8,7 +8,6 @@ public class Customer {
     private String lastName;
     private String email;
     private String password;
-    private String phone;
     private String address;
     private LocalDate dob;
     private boolean firstTimeLogin;
