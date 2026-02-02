@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="Bankify3:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Bankify3_jar</output-path>
+    <root id="archive" name="Bankify3.jar">
+      <element id="module-output" name="Bankify3" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/src/lib/LGoodDatePicker-11.2.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/src/lib/mysql-connector-j-9.6.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/src/lib/jBCrypt-0.4.3.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
