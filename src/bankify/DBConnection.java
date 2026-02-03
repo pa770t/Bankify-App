@@ -11,10 +11,10 @@ public class DBConnection {
 //    private static final String USER = "test"; // change current database username
 //    private static final String PASSWORD ="password"; // change current database password
 
-    private static final String URL = "jdbc:mysql://sql.freedb.tech:3306/freedb_bankifyDB?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-
-    private static final String USER = "freedb_bankify_root"; // change current database username
-    private static final String PASSWORD ="R32nF5&4GsSHM?a"; // change current database password
+    private static final String URL = "jdbc:mysql://db4free.net:3306/bankifydb?useSSL=false&allowPublicKeyRetrieval" +
+            "=true&serverTimezone=UTC";
+    private static final String USER = "bankify_root";
+    private static final String PASSWORD = "bankifyDB";
 
     public static Connection getConnection() {
     	System.out.println("getConnection() method CALLED");
