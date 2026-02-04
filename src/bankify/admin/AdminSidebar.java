@@ -1,14 +1,21 @@
 package bankify.admin;
 
+import bankify.Agent;
+import bankify.dao.AgentDao;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.sql.Connection;
 
 public class AdminSidebar extends JPanel {
     private JFrame parentFrame;
     private String activePage;
     private RoundedButton[] menuButtons;
+    private static Agent agent;
+    private static AgentDao agentDao;
+    private static Connection conn;
     
     // Constructor မှာ activePage ကို လက်ခံပါ
     public AdminSidebar(JFrame parentFrame, String activePage) {
@@ -105,7 +112,7 @@ public class AdminSidebar extends JPanel {
             if (text.equals("Dashboard")) {
                 // Check if already on Dashboard
                 if (!activePage.equals("Dashboard")) {
-                    navigate(new AdminDashboard());
+                    navigate(new AdminDashboard(agent, agentDao, conn));
                 }
             } else if (text.equals("Users")) {
                 // Check if already on Users page

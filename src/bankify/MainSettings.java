@@ -164,12 +164,12 @@ public class MainSettings extends JFrame {
     }
 
     private void openChangePasswordPage() {
-        ChangePassword.launch(customer, customerDao);
+        ChangePassword.launch(customer, customerDao, conn);
         this.dispose();
     }
 
     private void openDeactivateAccountPage() {
-        DeactivateAccount.launch(customer, customerDao);
+        DeactivateAccount.launch(customer, customerDao, conn);
         this.dispose();
     }
     

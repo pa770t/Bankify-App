@@ -1,8 +1,6 @@
 package bankify.dao;
 
-import bankify.Account;
 import bankify.Agent;
-import bankify.Customer;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.*;

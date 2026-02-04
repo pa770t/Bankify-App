@@ -2,33 +2,56 @@ package bankify;
 
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
+import bankify.dao.AccountDao;
+import bankify.dao.CustomerDao;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.sql.Connection;
 import java.time.LocalDate;
 import java.util.regex.Pattern;
-import bankify.dao.*;
 
 public class MyProfile extends JFrame {
 
     private static final long serialVersionUID = 1L;
     private JPanel contentPanel;
-    // Removed textField_2 from here to prevent NullPointerException
-    private JTextField textField, textField_1, textField_3, textField_4, textField_5;
+
+    // Form Fields
+    private JTextField textField;   // First Name
+    private JTextField textField_1; // Last Name
+    private JTextField textField_3; // Address
+    private JTextField textField_4; // Email
+    private JTextField textField_5; // Phone
+
     // Date picker
     private DatePicker datePicker;
+
     // Error Labels
     private JLabel err1, err2, err3, err4, err5, err6;
-    // auto pass firstname lastname and email
+
+    // Data Objects
     private Customer customer;
     private CustomerDao customerDao;
     private final Connection conn;
 
+    /**
+     * Main Constructor.
+     * Ensures customer data is present before initializing Sidebar.
+     */
+    public MyProfile(Customer customer, CustomerDao customerDao, Connection connection) {
+        this.conn = connection;
+        this.customer = customer;
+        this.customerDao = customerDao;
 
-    public MyProfile(Connection connection) {
-        conn = connection;
+        // Safety check: redirect to login if customer is null
+        if (this.customer == null) {
+            new Login().setVisible(true);
+            this.dispose();
+            return;
+        }
 
         setTitle("Bankify - My Profile");
         setSize(1200, 800);
@@ -36,36 +59,40 @@ public class MyProfile extends JFrame {
         setLocationRelativeTo(null);
         getContentPane().setLayout(new BorderLayout());
 
-        // Sidebar
-        Sidebar sidebar = new Sidebar(this, "Settings",customer, customerDao, conn);
+        // Sidebar - Created AFTER 'this.customer' is assigned
+        Sidebar sidebar = new Sidebar(this, "Settings", this.customer, this.customerDao, this.conn);
+
+        // Content Panel
         contentPanel = createContentPanel();
 
         getContentPane().add(sidebar, BorderLayout.WEST);
         getContentPane().add(contentPanel, BorderLayout.CENTER);
+
+        // Populate fields with current data
+        populateFields();
     }
 
- // New constructor for first-time login profile setup
-    public MyProfile(Customer customer, CustomerDao customerDao, Connection connection) {
-        this(connection); // call default constructor to build UI
-        this.customer = customer;
-        this.customerDao = customerDao;
+    private void populateFields() {
+        if (customer == null) return;
 
         textField.setText(customer.getFirstName());
-        textField.setEditable(false);
-
         textField_1.setText(customer.getLastName());
-        textField_1.setEditable(false);
-
         textField_4.setText(customer.getEmail());
-        textField_4.setEditable(false);
 
-        if (customer.getPassword() != null) {
+        if (customer.getAddress() != null) {
             textField_3.setText(customer.getAddress());
         }
 
         if (customer.getPhoneNumber() != null) {
             textField_5.setText(customer.getPhoneNumber());
         }
+
+        if (customer.getDob() != null) {
+            datePicker.setDate(customer.getDob());
+        }
+
+        // Initial state: disable all
+        disableTextFields();
     }
 
     private JPanel createContentPanel() {
@@ -73,6 +100,7 @@ public class MyProfile extends JFrame {
         contentPanel.setBackground(new Color(30,127,179));
         contentPanel.setLayout(null);
 
+        // Header
         JPanel settingsHeaderPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -107,6 +135,7 @@ public class MyProfile extends JFrame {
 
         contentPanel.add(settingsHeaderPanel);
 
+        // Font Settings
         Font labelFont = new Font("Tw Cen MT", Font.BOLD, 18);
         Font fieldFont = new Font("Tw Cen MT", Font.PLAIN, 18);
         Font errorFont = new Font("Tw Cen MT", Font.BOLD, 16);
@@ -117,7 +146,7 @@ public class MyProfile extends JFrame {
         int column1X = 60;
         int column2X = 460;
 
-        // --- Row 1 ---
+        // --- Row 1: Names ---
         JLabel lblFirstName = new JLabel("First Name");
         lblFirstName.setForeground(Color.WHITE);
         lblFirstName.setFont(labelFont);
@@ -128,7 +157,6 @@ public class MyProfile extends JFrame {
         textField.setFont(fieldFont);
         textField.setBounds(column1X, 240, fieldWidth, fieldHeight);
         contentPanel.add(textField);
-        
 
         err1 = new JLabel("");
         err1.setForeground(errorColor);
@@ -153,14 +181,14 @@ public class MyProfile extends JFrame {
         err2.setBounds(column2X, 285, fieldWidth, 25);
         contentPanel.add(err2);
 
-        // --- Row 2 (DOB / Address) ---
+        // --- Row 2: DOB & Address ---
         JLabel lblDob = new JLabel("Date of Birth");
         lblDob.setForeground(Color.WHITE);
         lblDob.setFont(labelFont);
         lblDob.setBounds(column1X, 320, 150, 30);
         contentPanel.add(lblDob);
 
-        // DATE PICKER IMPLEMENTATION
+        // Date Picker Setup
         Font date_font = new Font("Tw Cen MT", Font.PLAIN, 18);
         DatePickerSettings dateSettings = new DatePickerSettings();
         dateSettings.setFormatForDatesCommonEra("yyyy-MM-dd");
@@ -206,7 +234,7 @@ public class MyProfile extends JFrame {
         err4.setBounds(column2X, 405, fieldWidth, 25);
         contentPanel.add(err4);
 
-        // --- Row 3 ---
+        // --- Row 3: Email & Phone ---
         JLabel lblEmail = new JLabel("Email");
         lblEmail.setFont(labelFont);
         lblEmail.setForeground(Color.WHITE);
@@ -229,7 +257,7 @@ public class MyProfile extends JFrame {
         lblPhone.setForeground(Color.WHITE);
         lblPhone.setBounds(column2X, 440, 150, 30);
         contentPanel.add(lblPhone);
-        
+
         JPanel phoneContainer = new JPanel();
         phoneContainer.setBounds(column2X, 480, fieldWidth, fieldHeight);
         phoneContainer.setLayout(new BorderLayout());
@@ -240,8 +268,8 @@ public class MyProfile extends JFrame {
         countryCodePanel.setPreferredSize(new Dimension(60, fieldHeight));
         countryCodePanel.setBackground(new Color(245, 245, 245));
         countryCodePanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(1, 1, 1, 0, new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(0, 10, 0, 0)
+                BorderFactory.createMatteBorder(1, 1, 1, 0, new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(0, 10, 0, 0)
         ));
 
         JLabel countryCodeLabel = new JLabel("+95");
@@ -253,44 +281,34 @@ public class MyProfile extends JFrame {
         textField_5 = new JTextField();
         textField_5.setFont(fieldFont);
         textField_5.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(1, 0, 1, 1, new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(0, 10, 0, 0)
+                BorderFactory.createMatteBorder(1, 0, 1, 1, new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(0, 10, 0, 0)
         ));
-     
+
         textField_5.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyTyped(java.awt.event.KeyEvent e) {
-                JTextField field = (JTextField) e.getSource();
                 char c = e.getKeyChar();
-                
-                
                 if (!Character.isDigit(c)) {
                     e.consume();
                     return;
                 }
-                
-               
+                JTextField field = (JTextField) e.getSource();
                 if (field.getText().length() >= 10) {
                     e.consume();
                 }
             }
         });
-       
+
         textField_5.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
             public void focusLost(java.awt.event.FocusEvent e) {
                 JTextField field = (JTextField) e.getSource();
                 String text = field.getText();
-                
-               
                 String digitsOnly = text.replaceAll("[^0-9]", "");
-                
-                
                 if (digitsOnly.length() > 10) {
                     digitsOnly = digitsOnly.substring(0, 10);
                 }
-                
-                
                 if (!text.equals(digitsOnly)) {
                     field.setText(digitsOnly);
                 }
@@ -318,14 +336,14 @@ public class MyProfile extends JFrame {
         btnSave.addActionListener(e -> saveProfile());
         contentPanel.add(btnSave);
 
-        disableTextFields();
         return contentPanel;
     }
+
     private void enableEditing() {
         // Keep first name, last name, and email locked
-        textField.setEditable(false);   // First name
-        textField_1.setEditable(false); // Last name
-        textField_4.setEditable(false); // Email
+        textField.setEditable(false);
+        textField_1.setEditable(false);
+        textField_4.setEditable(false);
 
         // Allow editing only for DOB, address, and phone
         datePicker.setEnabled(true);
@@ -338,7 +356,7 @@ public class MyProfile extends JFrame {
     private void disableTextFields() {
         textField.setEditable(false);
         textField_1.setEditable(false);
-        if(datePicker != null) datePicker.setEnabled(false); // Fixed: Replaced textField_2
+        if(datePicker != null) datePicker.setEnabled(false);
         textField_3.setEditable(false);
         textField_4.setEditable(false);
         textField_5.setEditable(false);
@@ -354,35 +372,56 @@ public class MyProfile extends JFrame {
         boolean hasError = false;
 
         // validate DOB, address, phone only
-        if (datePicker.getDate() == null) { err3.setText("! Date of birth required"); hasError = true; }
-        if (textField_3.getText().trim().isEmpty()) { err4.setText("! Address required"); hasError = true; }
+        if (datePicker.getDate() == null) {
+            err3.setText("! Date of birth required");
+            hasError = true;
+        }
+        if (textField_3.getText().trim().isEmpty()) {
+            err4.setText("! Address required");
+            hasError = true;
+        }
+
         String phone = textField_5.getText().trim();
-        if (phone.isEmpty()) { err6.setText("! Phone required"); hasError = true; }
-        else if (!isValidPhoneNumber(phone)) { err6.setText("! Invalid (10-15 digits)"); hasError = true; }
-        else if (isValidPhoneNumber(phone)) {
+        if (phone.isEmpty()) {
+            err6.setText("! Phone required");
+            hasError = true;
+        } else if (!isValidPhoneNumber(phone)) {
+            err6.setText("! Invalid (10 digits)");
+            hasError = true;
+        } else {
+            // Check if phone number is already used by ANOTHER user
             Customer cus = customerDao.findByPhonenumber(phone);
-            if (cus != null) {
-                err6.setText("This phone number is already used!");
+            if (cus != null && cus.getCustomerId() != customer.getCustomerId()) {
+                err6.setText("Phone number already used!");
                 hasError = true;
             }
         }
 
         if (!hasError) {
-            // Update only editable fields
+            // Update fields in the object
             customer.setPhoneNumber(phone);
             customer.setAddress(textField_3.getText());
             customer.setDob(datePicker.getDate());
-            customer.setFirstTimeLogin(false);
+
+            // Check if this was the first time setup
+            boolean wasFirstTime = customer.isFirstTimeLogin();
+            if (wasFirstTime) {
+                customer.setFirstTimeLogin(false);
+            }
 
             boolean success = customerDao.updateProfile(customer);
             if (success) {
                 JOptionPane.showMessageDialog(this, "Profile saved successfully!");
                 disableTextFields();
-                AccountDao accountDao = new AccountDao(conn);
-                if (!customer.isFirstTimeLogin()) {
+
+                // If this was first time login, create the bank account now
+                if (wasFirstTime) {
+                    AccountDao accountDao = new AccountDao(conn);
                     accountDao.createCustomerAccount(customer);
                 }
-                dispose(); // close profile window
+
+                // Close and Reload Home Page
+                dispose();
                 new LoadingScreen(() -> new HomePage(customer, customerDao, conn).setVisible(true)).setVisible(true);
             } else {
                 JOptionPane.showMessageDialog(this, "Failed to save profile. Please try again.");
@@ -396,11 +435,13 @@ public class MyProfile extends JFrame {
 
     private boolean isValidPhoneNumber(String phone) {
         String digits = phone.replaceAll("[^0-9]", "");
-        return digits.length() == 10 ;
+        return digits.length() == 10;
     }
 
     private class RoundedCornerButton extends JButton {
+        private static final long serialVersionUID = 1L;
         private Color baseColor;
+
         public RoundedCornerButton(String text) {
             super(text);
             setContentAreaFilled(false);
@@ -408,11 +449,24 @@ public class MyProfile extends JFrame {
             setFocusPainted(false);
             setOpaque(false);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
+
             baseColor = text.equals("Edit") ? new Color(220, 20, 60) : new Color(50, 205, 50);
             setBackground(baseColor);
             setForeground(Color.WHITE);
             setFont(new Font("Tw Cen MT", Font.BOLD, 18));
+
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) { setBackground(baseColor.darker()); repaint(); }
+                public void mouseExited(MouseEvent e) { setBackground(baseColor); repaint(); }
+            });
         }
+
+        @Override
+        public void setBackground(Color bg) {
+            // We need to override this because we are storing state in baseColor mostly
+            super.setBackground(bg);
+        }
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -423,7 +477,4 @@ public class MyProfile extends JFrame {
             super.paintComponent(g);
         }
     }
-
-  
-
 }

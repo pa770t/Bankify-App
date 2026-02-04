@@ -321,15 +321,15 @@ public class ChangePassword extends JFrame {
         }
     }
 
-    public static void launch(Customer customer, CustomerDao customerDao) {
+    public static void launch(Customer customer, CustomerDao customerDao, Connection con) {
         if (customer == null) {
             new Login().setVisible(true);
         } else {
-            new ChangePassword(customer, customerDao, conn).setVisible(true);
+            new ChangePassword(customer, customerDao, con).setVisible(true);
         }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> ChangePassword.launch(customer, customerDao));
+        SwingUtilities.invokeLater(() -> ChangePassword.launch(customer, customerDao, conn));
     }
 }

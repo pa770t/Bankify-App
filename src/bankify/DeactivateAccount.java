@@ -262,15 +262,15 @@ public class DeactivateAccount extends JFrame {
         }
     }
 
-    public static void launch(Customer customer, CustomerDao customerDao) {
+    public static void launch(Customer customer, CustomerDao customerDao, Connection con) {
         if (customer == null) {
             new Login().setVisible(true);
         } else {
-            new DeactivateAccount(customer, customerDao, conn).setVisible(true);
+            new DeactivateAccount(customer, customerDao, con).setVisible(true);
         }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> DeactivateAccount.launch(customer, customerDao));
+        SwingUtilities.invokeLater(() -> DeactivateAccount.launch(customer, customerDao, conn));
     }
 }

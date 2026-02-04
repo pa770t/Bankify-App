@@ -281,6 +281,11 @@ public class TransferPage extends JFrame {
             txtAmount.requestFocus(); return;
         }
 
+        if (phoneNumber.equals(customer.getPhoneNumber())) {
+            JOptionPane.showMessageDialog(this, "This is your account! Transfer to another account!");
+            txtTo.requestFocus(); return;
+        }
+
         try {
             double amount = Double.parseDouble(amountStr);
             if (amount <= 0) {
@@ -310,7 +315,7 @@ public class TransferPage extends JFrame {
                             String message = String.format("Successfully transferred %,.2f MMK to %s", amount, phoneNumber);
                             if (!description.isEmpty()) message += "\nDescription: " + description;
                             JOptionPane.showMessageDialog(this, message);
-                            txtTo.setText("Enter ID");
+                            txtTo.setText("Enter Phone Number");
                             txtTo.setForeground(Color.GRAY);
                             txtAmount.setText("0");
                             txtDescription.setText("Optional note");

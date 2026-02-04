@@ -6,6 +6,7 @@ import java.awt.event.*;
 import java.sql.Connection;
 import javax.swing.border.EmptyBorder;
 
+import bankify.admin.AdminDashboard;
 import bankify.dao.AgentDao;
 import bankify.service.AuthService;
 import bankify.dao.CustomerDao;
@@ -290,10 +291,13 @@ public class AgentLogin extends JFrame {
                 Agent agent = auth.authenticateAgent(email, password, agentDao);
 
                 if (agent != null) {
-                    dispose();
                     // Open Agent Dashboard here
-                    JOptionPane.showMessageDialog(null, "Agent Login Successful!");
-                    new AgentRequestListPage(agent, agentDao, conn).setVisible(true);
+                    dispose();
+                    if (agent.getRole().equals("SYSTEM")) {
+                        new AdminDashboard(agent, agentDao, conn).setVisible(true);
+                    } else if (agent.getRole().equals("STAFF")) {
+                        new AgentRequestListPage(agent, agentDao, conn).setVisible(true);
+                    }
                 } else {
                     errPass.setText("Access Denied: Invalid Credentials");
                 }
