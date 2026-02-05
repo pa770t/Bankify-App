@@ -101,6 +101,17 @@ public class Sidebar extends JPanel {
 
         // Action Listeners for navigation
         btn.addActionListener(e -> {
+            if (customer.isFirstTimeLogin()) {
+                // If they are strictly required to update profile, don't let them go anywhere else
+                // Optional: Allow "Settings" if that's where MyProfile lives, otherwise block everything.
+
+                // Close the current window (parentFrame)
+                parentFrame.dispose();
+
+                // Open MyProfile immediately
+                new MyProfile(customer, customerDao, conn).setVisible(true);
+                return; // STOP execution here. Do not execute the code below.
+            }
             if (text.equals("Home")) navigate(new HomePage(customer ,customerDao, conn));
             else if (text.equals("Deposit")) navigate(new DepositPage(customer, customerDao, conn));
             else if (text.equals("Withdraw")) navigate(new WithdrawPage(customer, customerDao, conn));

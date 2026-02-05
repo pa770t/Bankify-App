@@ -117,7 +117,7 @@ public class AdminSidebar extends JPanel {
             } else if (text.equals("Users")) {
                 // Check if already on Users page
                 if (!activePage.equals("Users")) {
-                    navigate(new AdminUsersPage());
+                    navigate(new AdminUsersPage(conn));
                 }
             } else if (text.equals("Accounts")) {
                 // Check if already on Accounts page

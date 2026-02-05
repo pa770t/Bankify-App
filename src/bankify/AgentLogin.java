@@ -287,7 +287,7 @@ public class AgentLogin extends JFrame {
             }
 
             if (!hasError) {
-                AgentDao agentDao = new AgentDao(DBConnection.getConnection());
+                AgentDao agentDao = new AgentDao(conn);
                 Agent agent = auth.authenticateAgent(email, password, agentDao);
 
                 if (agent != null) {

@@ -258,7 +258,7 @@ public class AdminDashboard extends JFrame {
 
         switch(pageName) {
             case "Users":
-                newPage = new AdminUsersPage();
+                newPage = new AdminUsersPage(conn);
                 break;
             case "Accounts":
                  newPage = new AdminAccountsPage();

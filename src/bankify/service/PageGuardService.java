@@ -1,7 +1,9 @@
 package bankify.service;
 import bankify.*;
+import bankify.dao.CustomerDao;
 
 import javax.swing.*;
+import java.sql.Connection;
 
 public class PageGuardService {
     public static void checkSession(JFrame currentFrame, Customer customer) {

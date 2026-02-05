@@ -2,7 +2,6 @@ package bankify.admin;
 
 import bankify.Agent;
 import bankify.Customer;
-import bankify.DBConnection;
 import bankify.dao.AdminDao;
 import bankify.dao.AgentDao;
 import bankify.dao.CustomerDao;
@@ -30,9 +29,9 @@ public class AdminUsersPage extends JFrame {
     private static AdminDao adminDao;
     private static Connection conn;
 
-    public AdminUsersPage() {
+    public AdminUsersPage(Connection connection) {
         // In a real app, you would pass the connection, but this works for your setup
-        conn = DBConnection.getConnection();
+        conn = connection;
         adminDao = new AdminDao(conn);
 
         setTitle("Bankify - User Management");
@@ -282,8 +281,7 @@ public class AdminUsersPage extends JFrame {
 
                 // Hashing password
                 String plainPassword = "TempPass@123";
-                String hashedPassword = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
-                agent.setPassword(hashedPassword);
+                agent.setPassword(plainPassword);
 
                 Agent createdAgent = adminDao.createAgent(agent.getFullName(), agent.getRole(), agent.getGender(),
                         agent.getEmail(), agent.getPhoneNumber(), agent.getAddress(), agent.getPassword());
@@ -559,7 +557,7 @@ public class AdminUsersPage extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            AdminUsersPage frame = new AdminUsersPage();
+            AdminUsersPage frame = new AdminUsersPage(conn);
             frame.setVisible(true);
         });
     }

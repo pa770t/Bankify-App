@@ -194,6 +194,8 @@ public class AdminDao {
                     if (generatedKeys.next()) {
                         // Update the agent object with the new ID from the DB
                         agent.setAgentId(generatedKeys.getInt(1));
+                        AccountDao accountDao = new AccountDao(conn);
+                        accountDao.createAgentAccount(agent);
                         return agent;
                     }
                 }
