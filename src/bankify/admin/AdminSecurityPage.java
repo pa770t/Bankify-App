@@ -3,6 +3,7 @@ package bankify.admin;
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,8 +14,11 @@ public class AdminSecurityPage extends JFrame {
     private DefaultTableModel tableModel;
     private JTextField searchField;
     private JComboBox<String> filterCombo;
+    private static Connection conn;
 
-    public AdminSecurityPage() {
+    public AdminSecurityPage(Connection connection) {
+        conn = connection;
+
         setTitle("Bankify - Security Management");
         setSize(1200, 800);
         setLocationRelativeTo(null);
@@ -26,7 +30,7 @@ public class AdminSecurityPage extends JFrame {
     }
 
     private void initUI() {
-        AdminSidebar sidebar = new AdminSidebar(this, "Security");
+        AdminSidebar sidebar = new AdminSidebar(this, "Security", conn);
         add(sidebar, BorderLayout.WEST);
 
         JPanel contentPanel = new JPanel(new BorderLayout(0, 20));
@@ -291,7 +295,7 @@ public class AdminSecurityPage extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            AdminSecurityPage page = new AdminSecurityPage();
+            AdminSecurityPage page = new AdminSecurityPage(conn);
             page.setVisible(true);
         });
     }

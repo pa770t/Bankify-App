@@ -2,6 +2,8 @@ package bankify.dao;
 
 import bankify.Agent;
 import bankify.Customer;
+import bankify.admin.AdminAccountsPage;
+import bankify.admin.AdminTransactionsPage;
 import bankify.admin.AdminUsersPage;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -264,6 +266,210 @@ public class AdminDao {
         }
 
         return allUsers;
+    }
+
+    public boolean deleteCustomer(int customerId) {
+        // 1. Define the SQL query
+        String sql = "DELETE FROM customer WHERE customer_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            // 2. Set the ID parameter
+            stmt.setInt(1, customerId);
+
+            // 3. Execute the delete
+            int affectedRows = stmt.executeUpdate();
+
+            // 4. Return true if a row was actually removed
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error deleting customer: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean deleteAgent(int agentId) {
+        // 1. Define the SQL query (Targeting the 'employee' table)
+        String sql = "DELETE FROM employee WHERE employee_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            // 2. Set the ID parameter
+            stmt.setInt(1, agentId);
+
+            // 3. Execute the delete
+            int affectedRows = stmt.executeUpdate();
+
+            // 4. Return true if a row was actually removed
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error deleting agent: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<AdminAccountsPage.Account> getAllAccounts() {
+        List<AdminAccountsPage.Account> accounts = new ArrayList<>();
+
+        // Query 1: Get Customer Accounts
+        // We map 'Customer' to 'Normal User' to match your filter logic
+        String customerSql =
+                "SELECT " +
+                        "   a.account_number, " +
+                        "   CONCAT(c.first_name, ' ', c.last_name) AS holder_name, " +
+                        "   c.email, " +
+                        "   c.phone_number, " +
+                        "   a.account_type, " +
+                        "   a.balance, " +
+                        "   a.status, " +
+                        "   a.created_at, " +
+                        "   'Normal User' AS user_role " +
+                        "FROM account a " +
+                        "JOIN customer c ON a.customer_id = c.customer_id";
+
+        // Query 2: Get Agent Accounts (assuming linked to employee table)
+        String agentSql =
+                "SELECT " +
+                        "   a.account_number, " +
+                        "   e.full_name AS holder_name, " +
+                        "   e.email, " +
+                        "   e.phone_number, " +
+                        "   a.account_type, " +
+                        "   a.balance, " +
+                        "   a.status, " +
+                        "   a.created_at, " +
+                        "   'Agent' AS user_role " +
+                        "FROM account a " +
+                        "JOIN employee e ON a.employee_id = e.employee_id";
+
+        // Combine them
+        String unionSql = "(" + customerSql + ") UNION ALL (" + agentSql + ") ORDER BY created_at DESC";
+
+        try (PreparedStatement stmt = conn.prepareStatement(unionSql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                AdminAccountsPage.Account acc = new AdminAccountsPage.Account();
+                acc.setAccountNumber(rs.getString("account_number"));
+                acc.setAccountHolder(rs.getString("holder_name"));
+                acc.setEmail(rs.getString("email"));
+                acc.setPhone(rs.getString("phone_number"));
+                acc.setAccountType(rs.getString("account_type")); // e.g. Savings
+                acc.setBalance(rs.getDouble("balance"));
+                acc.setStatus(rs.getString("status"));
+                acc.setCreatedDate(rs.getString("created_at"));
+//                acc.setUserRole(rs.getString("user_role")); // "Normal User" or "Agent"
+
+                accounts.add(acc);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return accounts;
+    }
+
+    public boolean deleteAccount(String accountNumber) {
+        String sql = "DELETE FROM account WHERE account_number = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, accountNumber);
+
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error deleting account: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<AdminTransactionsPage.Transaction> getAllTransactions() {
+        List<AdminTransactionsPage.Transaction> transactions = new ArrayList<>();
+
+        // This query joins transactions with accounts, and then with customers/employees
+        // to find the name of the user associated with each transaction.
+        String sql =
+                "SELECT " +
+                        "    t.transaction_id, " +
+                        "    t.transaction_type, " +
+                        "    t.amount, " +
+                        "    t.status, " +
+                        "    t.transaction_at, " +
+                        "    COALESCE(c.customer_id, e.employee_id) AS user_id, " +
+                        "    COALESCE(CONCAT(c.first_name, ' ', c.last_name), e.full_name) AS user_name " +
+                        "FROM transactions t " +
+                        "JOIN account a ON t.account_id = a.account_id " +
+                        "LEFT JOIN customer c ON a.customer_id = c.customer_id " +
+                        "LEFT JOIN employee e ON a.employee_id = e.employee_id " +
+                        "ORDER BY t.transaction_at DESC";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String transactionId = String.valueOf(rs.getLong("transaction_id"));
+                String type = rs.getString("transaction_type");
+                double amount = rs.getDouble("amount");
+                String status = rs.getString("status");
+                Date date = rs.getDate("transaction_at");
+
+                String userId = String.valueOf(rs.getInt("user_id"));
+                String userName = rs.getString("user_name");
+
+                String fromUserId = "N/A";
+                String fromUserName = "External";
+                String toUserId = "N/A";
+                String toUserName = "External";
+                String uiType = "Unknown";
+
+                // Logic to map the single transaction entry to a "From/To" model for the UI
+                switch (type) {
+                    case "DEPOSIT":
+                        toUserId = userId;
+                        toUserName = userName;
+                        uiType = "Deposit";
+                        break;
+                    case "WITHDRAW":
+                        fromUserId = userId;
+                        fromUserName = userName;
+                        uiType = "Withdrawal";
+                        break;
+                    case "SEND":
+                        fromUserId = userId;
+                        fromUserName = userName;
+                        toUserName = "Recipient"; // We don't know the recipient from this single row
+                        uiType = "Transfer";
+                        break;
+                    case "RECEIVE":
+                        fromUserName = "Sender"; // We don't know the sender from this single row
+                        toUserId = userId;
+                        toUserName = userName;
+                        uiType = "Transfer";
+                        break;
+                }
+
+                // Create the Transaction object for the UI table
+                transactions.add(new AdminTransactionsPage.Transaction(
+                        transactionId,
+                        fromUserId,
+                        fromUserName,
+                        toUserId,
+                        toUserName,
+                        uiType, // Use the mapped UI type
+                        amount,
+                        status,
+                        date
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // Handle with proper logging
+        }
+
+        return transactions;
     }
 
 }

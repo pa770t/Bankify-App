@@ -1,18 +1,23 @@
 package bankify.admin;
 
+import bankify.AgentLogin;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
+import java.sql.Connection;
 
 public class AdminSettingsPage extends JFrame {
 
     // Main Color Definition
     private final Color PRIMARY_COLOR = new Color(30, 127, 179);
-    private final Color PILL_COLOR = new Color(0, 191, 255); 
+    private final Color PILL_COLOR = new Color(0, 191, 255);
+    private static Connection conn;
 
-    public AdminSettingsPage() {
+    public AdminSettingsPage(Connection connection) {
+        conn = connection;
         initializeUI();
     }
 
@@ -24,7 +29,7 @@ public class AdminSettingsPage extends JFrame {
         setLayout(new BorderLayout());
 
         // 1. Add Sidebar
-        AdminSidebar sidebar = new AdminSidebar(this, "Settings");
+        AdminSidebar sidebar = new AdminSidebar(this, "Settings", conn);
         add(sidebar, BorderLayout.WEST);
 
         // 2. Add Main Content
@@ -59,13 +64,13 @@ public class AdminSettingsPage extends JFrame {
         int vGap = 80; // အပေါ်တန်းနဲ့ အောက်တန်းကြား အကွာအဝေး
         
         // -- Row 1, Col 1: My Profile --
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        // Right ဘက်မှာ hGap တစ်ဝက်, Bottom မှာ vGap ထည့်ပါတယ်
-        gbc.insets = new Insets(0, 0, vGap, hGap/2); 
-        gbc.anchor = GridBagConstraints.CENTER;
-        addMenuOption(contentPanel, gbc, "<html><center>Admin<br>Profile</center></html>", "/Resources/my_profile.png", e -> openMyProfilePage());
+//        gbc.gridx = 0;
+//        gbc.gridy = 1;
+//        gbc.gridwidth = 1;
+//        // Right ဘက်မှာ hGap တစ်ဝက်, Bottom မှာ vGap ထည့်ပါတယ်
+//        gbc.insets = new Insets(0, 0, vGap, hGap/2);
+//        gbc.anchor = GridBagConstraints.CENTER;
+//        addMenuOption(contentPanel, gbc, "<html><center>Admin<br>Profile</center></html>", "/Resources/my_profile.png", e -> openMyProfilePage());
 
         // -- Row 1, Col 2: Change Password --
         gbc.gridx = 1;
@@ -78,13 +83,13 @@ public class AdminSettingsPage extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 2;
         // Row 2 ဖြစ်တဲ့အတွက် Bottom မှာ space မလိုတော့ပါ (0 ထားလိုက်ပါတယ်)
-        gbc.insets = new Insets(0, 0, 0, hGap/2);
+        gbc.insets = new Insets(0, 0, 0, hGap + 100);
         addMenuOption(contentPanel, gbc, "<html><center>Deactivate<br>Account</center></html>", "/Resources/deactivate_account.png", e -> openDeactivateAccountPage());
 
         // -- Row 2, Col 2: Logout --
         gbc.gridx = 1;
         gbc.gridy = 2;
-        gbc.insets = new Insets(0, hGap/2, 0, 0);
+        gbc.insets = new Insets(0, hGap + 100, 0, 0);
         addMenuOption(contentPanel, gbc, "Log Out", "/Resources/logout.png", e -> openLogoutPage());
 
         // --- 3. Pusher Component ---
@@ -136,18 +141,18 @@ public class AdminSettingsPage extends JFrame {
 // --- Navigation Methods ---
     
     // 1. My Profile Page သို့သွားရန်
-    private void openMyProfilePage() {
-        // လက်ရှိ Settings Page ကို ပိတ်မည်
-        this.dispose();
-        // AdminMyProfile Page အသစ်ကို ဖွင့်မည်
-        new bankify.admin.AdminMyProfile().setVisible(true);
-    }
+//    private void openMyProfilePage() {
+//        // လက်ရှိ Settings Page ကို ပိတ်မည်
+//        this.dispose();
+//        // AdminMyProfile Page အသစ်ကို ဖွင့်မည်
+//        new bankify.admin.AdminMyProfile(conn).setVisible(true);
+//    }
 
     // 2. Change Password Page သို့သွားရန်
     private void openChangePasswordPage() {
         this.dispose();
         // Change Password class နာမည်ကို မိမိပေးထားသည့်အတိုင်း ပြင်ဆင်ပါ
-        new bankify.admin.AdminChangePassword().setVisible(true);
+        new bankify.admin.AdminChangePassword(conn).setVisible(true);
         
     }
 
@@ -155,7 +160,7 @@ public class AdminSettingsPage extends JFrame {
     private void openDeactivateAccountPage() {
         this.dispose();
         // Deactivate Account class နာမည်ကို မိမိပေးထားသည့်အတိုင်း ပြင်ဆင်ပါ
-        new bankify.admin.AdminDeactivateAccount().setVisible(true);
+        new bankify.admin.AdminDeactivateAccount(conn).setVisible(true);
         
     }
 
@@ -172,7 +177,7 @@ public class AdminSettingsPage extends JFrame {
         if (choice == JOptionPane.YES_OPTION) {
             this.dispose();
             // Login Page သို့ ပြန်ပို့ရန် (Login class ရှိရာ path ကို ထည့်ပါ)
-            new bankify.Login().setVisible(true);
+            new AgentLogin().setVisible(true);
             System.out.println("Logged out successfully.");
         }
     }
@@ -262,6 +267,6 @@ public class AdminSettingsPage extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminSettingsPage().setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminSettingsPage(conn).setVisible(true));
     }
 }

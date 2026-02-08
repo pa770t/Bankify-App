@@ -1,9 +1,12 @@
 package bankify.admin;
 
+import bankify.dao.AdminDao;
+
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.Connection;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -14,11 +17,16 @@ public class AdminTransactionsPage extends JFrame {
     private DefaultTableModel tableModel;
     private JComboBox<String> filterType, filterStatus;
     private JTextField searchField;
+    private static Connection conn;
+    private static AdminDao adminDao;
     
     // Sample data for demo
     private List<Transaction> transactionList;
     
-    public AdminTransactionsPage() {
+    public AdminTransactionsPage(Connection connection) {
+        conn = connection;
+        adminDao = new AdminDao(conn);
+
         setTitle("Bankify - Transaction Management");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -38,9 +46,6 @@ public class AdminTransactionsPage extends JFrame {
         
         transactionList.add(new Transaction("TXN001", "U001", "John Doe", "U002", "Jane Smith", 
                 "Transfer", 50000.0, "Successful", new Date()));
-        
-        transactionList.add(new Transaction("TXN003", "U005", "Charlie Lee", "U001", "John Doe", 
-                "Deposit", 100000.0, "Pending", new Date()));
         transactionList.add(new Transaction("TXN004", "U002", "Jane Smith", "U006", "David Kim", 
                 "Withdrawal", 30000.0, "Successful", new Date()));
         transactionList.add(new Transaction("TXN005", "U004", "Bob Wilson", "U003", "Alice Brown", 
@@ -53,7 +58,7 @@ public class AdminTransactionsPage extends JFrame {
     
     private void initComponents() {
         // Sidebar
-        AdminSidebar sidebar = new AdminSidebar(this, "Transactions");
+        AdminSidebar sidebar = new AdminSidebar(this, "Transactions", conn);
         sidebar.setBackground(new Color(255, 255, 255));
         
         // Main content panel
@@ -158,7 +163,7 @@ public class AdminTransactionsPage extends JFrame {
         typeFilterPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
         typeFilterPanel.setPreferredSize(new Dimension(200, 40));
         
-        filterType = new JComboBox<>(new String[]{"All Types", "Transfer", "Deposit", "Withdrawal"});
+        filterType = new JComboBox<>(new String[]{"All Types", "Transfer", "Deposit", "Withdraw"});
         filterType.setFont(new Font("Tw Cen MT", Font.PLAIN, 16));
         filterType.setBackground(Color.WHITE);
         filterType.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
@@ -173,7 +178,7 @@ public class AdminTransactionsPage extends JFrame {
         statusFilterPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
         statusFilterPanel.setPreferredSize(new Dimension(200, 40));
         
-        filterStatus = new JComboBox<>(new String[]{"All Status", "Successful", "Pending", "Failed"});
+        filterStatus = new JComboBox<>(new String[]{"All Status", "Successful", "Failed"});
         filterStatus.setFont(new Font("Tw Cen MT", Font.PLAIN, 16));
         filterStatus.setBackground(Color.WHITE);
         filterStatus.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
@@ -281,6 +286,7 @@ public class AdminTransactionsPage extends JFrame {
     
     private void loadTransactions() {
         tableModel.setRowCount(0); // Clear existing data
+        transactionList = adminDao.getAllTransactions();
         
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         
@@ -407,7 +413,6 @@ public class AdminTransactionsPage extends JFrame {
     private String getStatusColor(String status) {
         switch (status) {
             case "Successful": return "#27ae60"; // Green
-            case "Pending": return "#f39c12"; // Orange
             case "Failed": return "#dc3545"; // Red
             default: return "#000000";
         }
@@ -439,10 +444,6 @@ public class AdminTransactionsPage extends JFrame {
             switch (status) {
                 case "Successful":
                     bgColor = new Color(39, 174, 96); // Green
-                    fgColor = Color.WHITE;
-                    break;
-                case "Pending":
-                    bgColor = new Color(243, 156, 18); // Orange
                     fgColor = Color.WHITE;
                     break;
                 case "Failed":
@@ -501,7 +502,7 @@ public class AdminTransactionsPage extends JFrame {
     }
     
     // Transaction Model Class
-    private class Transaction {
+    public static class Transaction {
         private String transactionId;
         private String fromUserId;
         private String fromUserName;
@@ -542,7 +543,7 @@ public class AdminTransactionsPage extends JFrame {
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            AdminTransactionsPage frame = new AdminTransactionsPage();
+            AdminTransactionsPage frame = new AdminTransactionsPage(conn);
             frame.setVisible(true);
         });
     }

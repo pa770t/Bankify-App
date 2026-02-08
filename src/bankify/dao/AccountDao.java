@@ -158,7 +158,6 @@ public class AccountDao {
         }
     }
 
-
     public boolean activateAccount(long accountId) {
         String sql = "UPDATE account SET status = ? WHERE account_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -172,6 +171,22 @@ public class AccountDao {
         }
     }
 
+    public boolean updateAccountNumber(int customerId, String newPhoneNumber) {
+        String sql = "UPDATE account SET account_number = ? WHERE customer_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, newPhoneNumber);
+            stmt.setInt(2, customerId);
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error updating account number: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     private Account map(ResultSet rs) throws SQLException {
         return new Account(

@@ -168,7 +168,7 @@ public class TransactionsPage extends JPanel {
         typeLabel.setUI(new PillLabelUI(isIncome ? new Color(60, 179, 113) : new Color(220, 20, 60), 30));
         row1.add(typeLabel);
 
-        JLabel idLabel = new JLabel("ID:" + tx.getTransactionId());
+        JLabel idLabel = new JLabel("ID:Tx" + String.format("%08d", tx.getTransactionId()));
         idLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         idLabel.setForeground(new Color(50, 50, 50));
         row1.add(idLabel);

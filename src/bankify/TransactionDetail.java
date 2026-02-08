@@ -125,7 +125,7 @@ public class TransactionDetail extends JPanel {
         gbc.gridx = 0; gbc.gridy = 1;
         detailsPanel.add(createDetailLabel("Transaction ID:", true, 18), gbc);
         gbc.gridx = 1;
-        detailsPanel.add(createDetailLabel(String.valueOf(tx.getFormattedDate()), false, 18), gbc);
+        detailsPanel.add(createDetailLabel("Tx" + String.format("%08d", tx.getTransactionId()), false, 18), gbc);
 
         // Date row
         gbc.gridx = 0; gbc.gridy = 2;

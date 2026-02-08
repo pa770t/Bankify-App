@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.sql.Connection;
 
 public class AdminDeactivateAccount extends JFrame {
 
@@ -11,8 +12,11 @@ public class AdminDeactivateAccount extends JFrame {
     private JPanel contentPanel;
     private RoundedPasswordField pwtPassword;
     private JLabel errPassword;
+    private static Connection conn;
 
-    public AdminDeactivateAccount() {
+    public AdminDeactivateAccount(Connection connection) {
+        conn = connection;
+
         setTitle("Bankify Admin - Deactivate Account");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -21,7 +25,7 @@ public class AdminDeactivateAccount extends JFrame {
 
         // Sidebar - AdminSidebar ကို သုံးထားပါတယ်
         // "AdminDeactivate" လို့ ပေးထားလို့ Sidebar က Settings ကို နှိပ်ရင် Settings Page ကို ပြန်သွားမှာပါ
-        AdminSidebar sidebar = new AdminSidebar(this, "AdminDeactivate");
+        AdminSidebar sidebar = new AdminSidebar(this, "AdminDeactivate", conn);
 
         // Content
         contentPanel = createContentPanel();
@@ -92,7 +96,7 @@ public class AdminDeactivateAccount extends JFrame {
         btnCancel.setBounds(300, 480, 120, 50);
         btnCancel.addActionListener(e -> {
             dispose();
-            new AdminSettingsPage().setVisible(true); // Settings Page ကို ပြန်သွားရန်
+            new AdminSettingsPage(conn).setVisible(true); // Settings Page ကို ပြန်သွားရန်
         });
         contentPanel.add(btnCancel);
 
@@ -225,6 +229,6 @@ public class AdminDeactivateAccount extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminDeactivateAccount().setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminDeactivateAccount(conn).setVisible(true));
     }
 }

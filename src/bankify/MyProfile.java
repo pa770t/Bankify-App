@@ -1,5 +1,6 @@
 package bankify;
 
+import bankify.service.EmailService;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
 import bankify.dao.AccountDao;
@@ -11,6 +12,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.regex.Pattern;
 
@@ -333,7 +335,13 @@ public class MyProfile extends JFrame {
 
         JButton btnSave = new RoundedCornerButton("Save");
         btnSave.setBounds(column2X + 250, 580, 100, 55);
-        btnSave.addActionListener(e -> saveProfile());
+        btnSave.addActionListener(e -> {
+            try {
+                saveProfile();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
         contentPanel.add(btnSave);
 
         return contentPanel;
@@ -367,7 +375,7 @@ public class MyProfile extends JFrame {
         err4.setText(""); err5.setText(""); err6.setText("");
     }
 
-    private void saveProfile() {
+    private void saveProfile() throws SQLException {
         clearErrors();
         boolean hasError = false;
 
@@ -390,16 +398,27 @@ public class MyProfile extends JFrame {
             hasError = true;
         } else {
             // Check if phone number is already used by ANOTHER user
+            AccountDao accountDao = new AccountDao(conn);
+            Account userAcc = accountDao.getAccountByNumber(phone);
             Customer cus = customerDao.findByPhonenumber(phone);
-            if (cus != null && cus.getCustomerId() != customer.getCustomerId()) {
+            if ((cus != null && cus.getCustomerId() != customer.getCustomerId()) || userAcc != null) {
                 err6.setText("Phone number already used!");
                 hasError = true;
             }
         }
 
         if (!hasError) {
+            // 1. Get the new input from the field
+            String newPhone = textField_5.getText().trim();
+
+            // 2. Get the old phone from the object (before we update it!)
+            String oldPhone = customer.getPhoneNumber();
+
+            // 3. Check if they are different
+            boolean phoneChanged = !newPhone.equals(oldPhone);
+
             // Update fields in the object
-            customer.setPhoneNumber(phone);
+            customer.setPhoneNumber(newPhone);
             customer.setAddress(textField_3.getText());
             customer.setDob(datePicker.getDate());
 
@@ -411,15 +430,19 @@ public class MyProfile extends JFrame {
 
             boolean success = customerDao.updateProfile(customer);
             if (success) {
-                JOptionPane.showMessageDialog(this, "Profile saved successfully!");
+                AccountDao accountDao = new AccountDao(conn);
                 disableTextFields();
 
                 // If this was first time login, create the bank account now
                 if (wasFirstTime) {
-                    AccountDao accountDao = new AccountDao(conn);
                     accountDao.createCustomerAccount(customer);
+                    EmailService emailService = new EmailService();
+                    emailService.sendWelcomeEmail(customer);
+                } else if (phoneChanged) {
+                    accountDao.updateAccountNumber(customer.getCustomerId(), newPhone);
                 }
 
+                JOptionPane.showMessageDialog(this, "Profile saved successfully!");
                 // Close and Reload Home Page
                 dispose();
                 new LoadingScreen(() -> new HomePage(customer, customerDao, conn).setVisible(true)).setVisible(true);

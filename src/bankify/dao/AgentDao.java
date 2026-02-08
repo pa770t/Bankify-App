@@ -99,4 +99,34 @@ public class AgentDao {
         }
         return null;
     }
+
+    public boolean checkPassword(String agentEmail, String plainTextPassword) {
+        String sql = "SELECT password FROM employee WHERE email = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, agentEmail);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String hashedPasswordFromDb = rs.getString("password");
+                    // BCrypt checks the plain password against the stored hash
+                    return BCrypt.checkpw(plainTextPassword, hashedPasswordFromDb);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false; // User not found or error
+    }
+
+    public boolean updatePassword(String agentEmail, String newHashedPassword) {
+        String sql = "UPDATE employee SET password = ? WHERE email = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, newHashedPassword);
+            stmt.setString(2, agentEmail);
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

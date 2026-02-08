@@ -1,5 +1,7 @@
 package bankify.admin;
 
+import bankify.dao.AdminDao;
+
 import javax.swing.*;
 import javax.swing.table.*;
 
@@ -7,6 +9,7 @@ import javax.swing.table.*;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.Connection;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -17,11 +20,16 @@ public class AdminAccountsPage extends JFrame {
     private DefaultTableModel tableModel;
     private JComboBox<String> filterComboBox;
     private JTextField searchField;
+    private static Connection conn;
     
     // Sample data for demo
     private List<Account> accountList;
+    private static AdminDao adminDao;
     
-    public AdminAccountsPage() {
+    public AdminAccountsPage(Connection connection) {
+        conn = connection;
+        adminDao = new AdminDao(conn);
+
         setTitle("Bankify - Accounts Management");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -58,7 +66,7 @@ public class AdminAccountsPage extends JFrame {
     
     private void initComponents() {
         // Sidebar
-        AdminSidebar sidebar = new AdminSidebar(this, "Accounts");
+        AdminSidebar sidebar = new AdminSidebar(this, "Accounts", conn);
         sidebar.setBackground(new Color(255, 255, 255));
         
         // Main content panel
@@ -171,16 +179,16 @@ public class AdminAccountsPage extends JFrame {
         buttonPanel.setBackground(new Color(240, 242, 245));
         buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         
-        JButton addButton = createButton("Add Account", new Color(39, 174, 96));
-        JButton editButton = createButton("Edit Account", new Color(41, 128, 185));
+//        JButton addButton = createButton("Add Account", new Color(39, 174, 96));
+//        JButton editButton = createButton("Edit Account", new Color(41, 128, 185));
         JButton deleteButton = createButton("Delete Account", new Color(231, 76, 60));
         
-        addButton.addActionListener(e -> addNewAccount());
-        editButton.addActionListener(e -> editAccount());
+//        addButton.addActionListener(e -> addNewAccount());
+//        editButton.addActionListener(e -> editAccount());
         deleteButton.addActionListener(e -> deleteAccount());
         
-        buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
+//        buttonPanel.add(addButton);
+//        buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
         
         toolbarPanel.add(searchPanel);
@@ -271,6 +279,7 @@ public class AdminAccountsPage extends JFrame {
     
     private void loadAccounts() {
         tableModel.setRowCount(0); // Clear existing data
+        accountList = adminDao.getAllAccounts();
         
         for (Account acc : accountList) {
             Object[] row = {
@@ -421,7 +430,10 @@ public class AdminAccountsPage extends JFrame {
             JOptionPane.WARNING_MESSAGE);
         
         if (confirm == JOptionPane.YES_OPTION) {
-            accountList.removeIf(acc -> acc.getAccountNumber().equals(accountNo));
+            boolean success = adminDao.deleteAccount(accountNo);
+            if (success) {
+                accountList.removeIf(acc -> acc.getAccountNumber().equals(accountNo));
+            }
             loadAccounts();
             JOptionPane.showMessageDialog(this, "Account deleted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
         }
@@ -665,7 +677,7 @@ public class AdminAccountsPage extends JFrame {
     }
     
     // Account Model Class
-    private class Account {
+    public static class Account {
         private String accountNumber;
         private String accountHolder;
         private String email;
@@ -715,7 +727,7 @@ public class AdminAccountsPage extends JFrame {
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            AdminAccountsPage frame = new AdminAccountsPage();
+            AdminAccountsPage frame = new AdminAccountsPage(conn);
             frame.setVisible(true);
         });
     }

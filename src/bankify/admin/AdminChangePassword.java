@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.sql.Connection;
 
 public class AdminChangePassword extends JFrame {
 
@@ -11,8 +12,11 @@ public class AdminChangePassword extends JFrame {
     private JPanel contentPanel;
     private RoundedPasswordField pwtCurrent, pwtNew, pwtConfirm;
     private JLabel errCurrent, errNew, errConfirm, successLabel;
+    private static Connection conn;
 
-    public AdminChangePassword() {
+    public AdminChangePassword(Connection connection) {
+        conn = connection;
+
         setTitle("Bankify Admin - Change Password");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -21,7 +25,7 @@ public class AdminChangePassword extends JFrame {
 
         // Sidebar - Admin Sidebar ကို သုံးထားပါတယ်
         // "AdminSettings" လို့ နာမည်ပေးထားခြင်းဖြင့် Sidebar က Settings ကိုနှိပ်ရင် AdminSettingsPage ကို ပြန်ရောက်ပါမယ်
-        AdminSidebar sidebar = new AdminSidebar(this, "AdminChangePass");
+        AdminSidebar sidebar = new AdminSidebar(this, "AdminChangePass", conn);
 
         contentPanel = createContentPanel();
 
@@ -102,7 +106,7 @@ public class AdminChangePassword extends JFrame {
         btnCancel.setBounds(310, 550, 120, 50);
         btnCancel.addActionListener(e -> {
             dispose();
-            new AdminSettingsPage().setVisible(true);
+            new AdminSettingsPage(conn).setVisible(true);
         });
         contentPanel.add(btnCancel);
 
@@ -259,6 +263,6 @@ public class AdminChangePassword extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminChangePassword().setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminChangePassword(conn).setVisible(true));
     }
 }

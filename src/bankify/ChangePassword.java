@@ -2,6 +2,7 @@ package bankify;
 
 import bankify.dao.CustomerDao;
 import bankify.service.AuthService;
+import bankify.service.EmailService;
 import bankify.service.PageGuardService;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -109,7 +110,6 @@ public class ChangePassword extends JFrame {
         errCurrent.setFont(new Font("Tw Cen MT", Font.BOLD, 16));
         contentPanel.add(errCurrent);
 
-
         pwtNew = new RoundedPasswordField();
         contentPanel.add(createLabeledField("New Password", pwtNew, 310));
         
@@ -212,6 +212,8 @@ public class ChangePassword extends JFrame {
                     auth.changePassword(customer.getCustomerId(), current, newPass);
 
                     successLabel.setText("Password changed successfully!");
+                    EmailService emailService = new EmailService();
+                    emailService.sendPasswordChangeSuccessEmail(customer);
                     pwtCurrent.setText("");
                     pwtNew.setText("");
                     pwtConfirm.setText("");

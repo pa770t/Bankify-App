@@ -75,8 +75,7 @@ public class CustomerDao {
             return true;
         } else return a != null;
     }
-
-    // Update profile (phone_number, address, dob, and flip first_time_login)
+    
     public boolean updateProfile(Customer customer) {
         String sql = "UPDATE customer SET phone_number = ?, address = ?, dob = ?, first_time_login = ? WHERE email = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {

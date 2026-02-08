@@ -9,6 +9,7 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.net.URL;
+import java.sql.Connection;
 import java.util.regex.Pattern;
 
 public class AdminMyProfile extends JFrame {
@@ -18,15 +19,18 @@ public class AdminMyProfile extends JFrame {
     private JTextField textField, textField_1, textField_3, textField_4, textField_5;
     private DatePicker datePicker;
     private JLabel err1, err2, err3, err4, err5, err6;
+    private static Connection conn;
 
-    public AdminMyProfile() {
+    public AdminMyProfile(Connection connection) {
+        conn = connection;
+
         setTitle("Bankify Admin - My Profile");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setLayout(new BorderLayout());
 
-        AdminSidebar sidebar = new AdminSidebar(this, "AdminProfile");
+        AdminSidebar sidebar = new AdminSidebar(this, "AdminProfile", conn);
         
         contentPanel = createContentPanel();
 
@@ -304,6 +308,6 @@ public class AdminMyProfile extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminMyProfile().setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminMyProfile(conn).setVisible(true));
     }
 }

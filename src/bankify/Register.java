@@ -30,11 +30,11 @@ public class Register extends JFrame {
     private final Color errorRed = new Color(200, 0, 0);
 
     // ==================== VALIDATION PATTERNS ====================
-    private static final String GMAIL_PATTERN = "^[a-zA-Z0-9._%+-]+@gmail\\.com$";
+    private static final String EMAIL_PATTERN = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
     private static final String PASSWORD_PATTERN = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
     private static final String NAME_PATTERN = "^[a-zA-Z]+(?:[\\s-][a-zA-Z]+)*$";
 
-    private static final Pattern gmailPattern = Pattern.compile(GMAIL_PATTERN);
+    private static final Pattern emailPattern = Pattern.compile(EMAIL_PATTERN);
     private static final Pattern passwordPattern = Pattern.compile(PASSWORD_PATTERN);
     private static final Pattern namePattern = Pattern.compile(NAME_PATTERN);
 
@@ -227,9 +227,15 @@ public class Register extends JFrame {
                 if (lastName.isEmpty()) { errLast.setText("Please Enter Last Name!"); hasError = true; }
                 else if (!isValidName(lastName)) { errLast.setText("Invalid characters!"); hasError = true; }
 
-                if (gmail.isEmpty()) { errEmail.setText("Please Enter Gmail!"); hasError = true; }
-                else if (!isValidGmail(gmail)) { errEmail.setText("Use yourname@gmail.com"); hasError = true; }
-                else if (isValidGmail(gmail)) {
+                if (gmail.isEmpty()) {
+                    errEmail.setText("Please Enter Email!");
+                    hasError = true;
+                }
+                else if (!isValidEmail(gmail)) {
+                    errEmail.setText("Invalid email format");
+                    hasError = true;
+                }
+                else if (isValidEmail(gmail)) {
                     CustomerDao customerDao = new CustomerDao(conn);
                     boolean hasEmail = customerDao.hasEmailForBoth(gmail);
                     if (hasEmail) {
@@ -346,9 +352,9 @@ public class Register extends JFrame {
         });
     }
 
-    private boolean isValidGmail(String email) {
+    private boolean isValidEmail(String email) {
         if (email == null) return false;
-        Matcher matcher = gmailPattern.matcher(email);
+        Matcher matcher = emailPattern.matcher(email); // Uses the new generic pattern
         return matcher.matches();
     }
 

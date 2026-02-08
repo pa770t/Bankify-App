@@ -1,7 +1,9 @@
 package bankify.admin;
 
+import bankify.Account;
 import bankify.Agent;
 import bankify.Customer;
+import bankify.dao.AccountDao;
 import bankify.dao.AdminDao;
 import bankify.dao.AgentDao;
 import bankify.dao.CustomerDao;
@@ -14,6 +16,7 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +35,7 @@ public class AdminUsersPage extends JFrame {
     public AdminUsersPage(Connection connection) {
         // In a real app, you would pass the connection, but this works for your setup
         conn = connection;
+        customerDao = new CustomerDao(conn);
         adminDao = new AdminDao(conn);
 
         setTitle("Bankify - User Management");
@@ -126,15 +130,11 @@ public class AdminUsersPage extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setBackground(new Color(240, 242, 245));
         JButton addButton = createButton("Add User", new Color(39, 174, 96));
-        JButton editButton = createButton("Edit User", new Color(41, 128, 185));
         JButton deleteButton = createButton("Delete User", new Color(231, 76, 60));
         addButton.addActionListener(e -> addUser());
-        editButton.addActionListener(e -> editUser());
         deleteButton.addActionListener(e -> deleteUser());
         buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
-
         toolbarPanel.add(searchPanel);
         toolbarPanel.add(filterPanel);
         toolbarPanel.add(buttonPanel);
@@ -186,17 +186,35 @@ public class AdminUsersPage extends JFrame {
 
     private void populateTable() {
         tableModel.setRowCount(0);
-        for (User user : users) {
-            Object[] rowData = {
-                    user.getId(),
-                    user.getName(),
-                    user.getEmail(),
-                    user.getPhone(),
-                    user.getRole(),
-                    user.getStatus(),
-                    user.getJoinDate()
-            };
-            tableModel.addRow(rowData);
+
+        try {
+            AccountDao accountDao = new AccountDao(conn);
+            AgentDao agentDao1 = new AgentDao(conn);
+            Agent agent;
+
+            for (User user : users) {
+                Account account = accountDao.getAccountByCustomerId(user.getId());
+                Object[] rowData = {
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getPhone(),
+                        user.getRole(),
+                        user.getStatus(),
+                        user.getJoinDate()
+                };
+                agent = agentDao1.findByEmail(user.getEmail());
+
+                if (agent != null && agent.getRole().equalsIgnoreCase("System")) {
+                    rowData[5] = "Active";
+                } else if (agent == null && account == null) {
+                    rowData[5] = "Inactive";
+                }
+                tableModel.addRow(rowData);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -224,11 +242,23 @@ public class AdminUsersPage extends JFrame {
     private void filterUsers() {
         String filter = (String) filterComboBox.getSelectedItem();
         tableModel.setRowCount(0);
+
         for (User user : users) {
-            boolean matches = "All Users".equals(filter) ||
-                    ("Active".equals(filter) && "Active".equals(user.getStatus())) ||
-                    ("Inactive".equals(filter) && "Inactive".equals(user.getStatus())) ||
-                    (user.getRole() != null && user.getRole().equals(filter));
+            boolean matches = false;
+            if ("All Users".equals(filter)) {
+                matches = true;
+            } else if (filter.equalsIgnoreCase(user.getStatus())) {
+                matches = true;
+            } else if (filter.equalsIgnoreCase(user.getRole())) {
+                matches = true;
+            } else if ("Admin".equalsIgnoreCase(filter) &&
+                    "SYSTEM".equalsIgnoreCase(user.getRole())) {
+                matches = true;
+            } else if ("Agent".equalsIgnoreCase(filter) &&
+                    "STAFF".equalsIgnoreCase(user.getRole())) {
+                matches = true;
+            }
+
             if (matches) {
                 Object[] rowData = {
                         user.getId(), user.getName(), user.getEmail(), user.getPhone(),
@@ -302,35 +332,6 @@ public class AdminUsersPage extends JFrame {
         }
     }
 
-    private void editUser() {
-        int selectedRow = usersTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a user to edit", "No Selection", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        int userId = (int) tableModel.getValueAt(selectedRow, 0);
-        User userToEdit = users.stream().filter(u -> u.getId() == userId).findFirst().orElse(null);
-
-        if (userToEdit != null) {
-            UserDialog dialog = new UserDialog(this, "Edit User", userToEdit);
-            dialog.setVisible(true);
-
-            if (dialog.isConfirmed()) {
-                User updatedUser = dialog.getUser();
-                userToEdit.setName(updatedUser.getName());
-                userToEdit.setEmail(updatedUser.getEmail());
-                userToEdit.setPhone(updatedUser.getPhone());
-                userToEdit.setAddress(updatedUser.getAddress()); // Update address
-                userToEdit.setGender(updatedUser.getGender());
-                userToEdit.setRole(updatedUser.getRole());
-                userToEdit.setStatus(updatedUser.getStatus());
-                populateTable();
-                JOptionPane.showMessageDialog(this, "User updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            }
-        }
-    }
-
     private void deleteUser() {
         int selectedRow = usersTable.getSelectedRow();
         if (selectedRow == -1) {
@@ -346,6 +347,12 @@ public class AdminUsersPage extends JFrame {
 
         if (confirm == JOptionPane.YES_OPTION) {
             users.removeIf(u -> u.getId() == userId);
+            Customer customer = customerDao.findById(userId);
+            if (customer != null) {
+                adminDao.deleteCustomer(customer.getCustomerId());
+            } else {
+                adminDao.deleteAgent(userId);
+            }
             populateTable();
             JOptionPane.showMessageDialog(this, "User deleted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
         }

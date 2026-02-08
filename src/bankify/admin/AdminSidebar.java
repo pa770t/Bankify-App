@@ -18,9 +18,10 @@ public class AdminSidebar extends JPanel {
     private static Connection conn;
     
     // Constructor မှာ activePage ကို လက်ခံပါ
-    public AdminSidebar(JFrame parentFrame, String activePage) {
+    public AdminSidebar(JFrame parentFrame, String activePage, Connection connection) {
         this.parentFrame = parentFrame;
         this.activePage = activePage;
+        conn = connection;
         
         // Initialize UI components
         initializeUI();
@@ -53,7 +54,7 @@ public class AdminSidebar extends JPanel {
         menuPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
 
         menuButtons = new RoundedButton[6];
-        String[] buttonNames = {"Dashboard", "Users", "Accounts", "Transactions", "Security", "Settings"};
+        String[] buttonNames = {"Dashboard", "Users", "Accounts", "Transactions", "Settings"};
         
         for (int i = 0; i < buttonNames.length; i++) {
             String iconPath = getIconPathForButton(buttonNames[i]);
@@ -76,7 +77,6 @@ public class AdminSidebar extends JPanel {
             case "Users": return "/Resources/my_profile.png";
             case "Accounts": return "/Resources/account_type.png";
             case "Transactions": return "/Resources/transactions.png";
-            case "Security": return "/Resources/security.png";
             case "Settings": return "/Resources/settings.png";
             default: return "";
         }
@@ -122,22 +122,17 @@ public class AdminSidebar extends JPanel {
             } else if (text.equals("Accounts")) {
                 // Check if already on Accounts page
                 if (!activePage.equals("Accounts")) {
-                    navigate(new AdminAccountsPage());
+                    navigate(new AdminAccountsPage(conn));
                 }
             } else if (text.equals("Transactions")) {
                 // Check if already on Transactions page
                 if (!activePage.equals("Transactions")) {
-                    navigate(new AdminTransactionsPage());
-                }
-            } else if (text.equals("Security")) {
-                // Check if already on Security page
-                if (!activePage.equals("Security")) {
-                    navigate(new AdminSecurityPage());
+                    navigate(new AdminTransactionsPage(conn));
                 }
             } else if (text.equals("Settings")) {
                 // Check if already on Settings page
                 if (!activePage.equals("Settings")) {
-                    navigate(new AdminSettingsPage());
+                    navigate(new AdminSettingsPage(conn));
                 }
             }
         });
@@ -173,8 +168,6 @@ public class AdminSidebar extends JPanel {
             newActivePage = "Transactions";
         } else if (page instanceof AdminAccountsPage) {
             newActivePage = "Accounts";
-        } else if (page instanceof AdminSecurityPage) {
-            newActivePage = "Security";
         } else if (page instanceof AdminSettingsPage) {
             newActivePage = "Settings"; // FIXED: Changed from "Setting" to "Settings"
         }
@@ -186,7 +179,7 @@ public class AdminSidebar extends JPanel {
         }
          
         // Create new sidebar with updated active page
-        AdminSidebar newSidebar = new AdminSidebar(page, newActivePage);
+        AdminSidebar newSidebar = new AdminSidebar(page, newActivePage, conn);
         
         // If your pages use BorderLayout, you can add the sidebar to WEST
         if (page.getContentPane() instanceof JPanel) {
