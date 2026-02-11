@@ -121,7 +121,7 @@ public class CustomerDao {
         return null;
     }
 
-    public Customer findByPhonenumber(String phoneNumber) {
+    public Customer findByPhoneNumber(String phoneNumber) {
         String sql = "SELECT * FROM customer WHERE phone_number = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, phoneNumber);

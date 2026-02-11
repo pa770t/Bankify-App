@@ -1,6 +1,8 @@
 package bankify.admin;
 
+import bankify.Agent;
 import bankify.dao.AdminDao;
+import bankify.dao.AgentDao;
 
 import javax.swing.*;
 import javax.swing.table.*;
@@ -19,11 +21,15 @@ public class AdminTransactionsPage extends JFrame {
     private JTextField searchField;
     private static Connection conn;
     private static AdminDao adminDao;
+    private static Agent agent;
+    private static AgentDao agentDao;
     
     // Sample data for demo
     private List<Transaction> transactionList;
     
-    public AdminTransactionsPage(Connection connection) {
+    public AdminTransactionsPage(Agent ag, AgentDao agd, Connection connection) {
+        agent = ag;
+        agentDao = agd;
         conn = connection;
         adminDao = new AdminDao(conn);
 
@@ -58,7 +64,7 @@ public class AdminTransactionsPage extends JFrame {
     
     private void initComponents() {
         // Sidebar
-        AdminSidebar sidebar = new AdminSidebar(this, "Transactions", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "Transactions", agent, agentDao, conn);
         sidebar.setBackground(new Color(255, 255, 255));
         
         // Main content panel
@@ -543,7 +549,7 @@ public class AdminTransactionsPage extends JFrame {
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            AdminTransactionsPage frame = new AdminTransactionsPage(conn);
+            AdminTransactionsPage frame = new AdminTransactionsPage(agent, agentDao, conn);
             frame.setVisible(true);
         });
     }

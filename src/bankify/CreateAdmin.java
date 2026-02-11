@@ -29,7 +29,7 @@ public class CreateAdmin {
 
         AdminDao dao = new AdminDao(conn);
 
-        System.out.println("=== Admin/Employee Registration ===");
+        System.out.println("=== Admin Registration ===");
 
         // 2. Collect Input Data
         System.out.print("Enter Full Name: ");
@@ -64,7 +64,7 @@ public class CreateAdmin {
             password = scanner.nextLine();
         }
 
-        System.out.println("\nCreating admin/employee...");
+        System.out.println("\nCreating admin...");
 
         // 4. Call DAO to Hash Password and Insert
         // Note: Make sure your AdminDao.createAdmin method exists and accepts these parameters

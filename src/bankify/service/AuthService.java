@@ -101,4 +101,28 @@ public class AuthService {
         return customerDao.updatePassword(customer); // return true if updated successfully
     }
 
+    public boolean changeAdminPassword(long employeeId, String oldPassword, String newPassword) {
+        if (newPassword == null || newPassword.isEmpty()) {
+            return false; // new password cannot be empty
+        }
+
+        // 1. Fetch the customer by ID
+        AgentDao agentDao = new AgentDao(conn);
+        Agent agent = agentDao.findById(employeeId);
+        if (agent == null) return false;
+
+        // 2. Verify old password
+        if (!BCrypt.checkpw(oldPassword, agent.getPassword())) {
+            return false; // old password does not match
+        }
+
+        // 3. Hash the new password
+        String hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
+
+        // 4. Update the password in the database
+        agent.setPassword(hashedPassword);
+
+        return agentDao.updatePassword(agent.getEmail(), hashedPassword); // return true if updated successfully
+    }
+
 }

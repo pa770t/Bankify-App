@@ -472,4 +472,60 @@ public class AdminDao {
         return transactions;
     }
 
+    public void updateCustomer(Customer customer) throws SQLException {
+        String sql = "UPDATE customer SET first_name = ?, last_name = ?, email = ?, phone_number = ?, address = ? WHERE customer_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, customer.getFirstName());
+            stmt.setString(2, customer.getLastName());
+            stmt.setString(3, customer.getEmail());
+            stmt.setString(4, customer.getPhoneNumber());
+            stmt.setString(5, customer.getAddress());
+            stmt.setLong(6, customer.getCustomerId());
+
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("Updating customer failed, no rows affected.");
+            }
+        }
+    }
+
+    public void updateAgent(Agent agent) throws SQLException {
+        String sql = "UPDATE employee SET full_name = ?, email = ?, phone_number = ?, address = ?, role = ?, gender = ? WHERE employee_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, agent.getFullName());
+            stmt.setString(2, agent.getEmail());
+            stmt.setString(3, agent.getPhoneNumber());
+            stmt.setString(4, agent.getAddress());
+            stmt.setString(5, agent.getRole());   // 'STAFF' or 'SYSTEM'
+            stmt.setString(6, agent.getGender()); // 'MALE', 'FEMALE', etc.
+            stmt.setLong(7, agent.getAgentId());
+
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("Updating agent failed, no rows affected.");
+            }
+        }
+    }
+
+    public boolean hasEmailForBoth(String email) {
+        Customer cus = new CustomerDao(conn).findByEmail(email);
+        AgentDao agentDao = new AgentDao(conn);
+        Agent a = agentDao.findByEmail(email);
+
+        if (cus != null) {
+            return true;
+        } else return a != null;
+    }
+
+    public boolean hasPhoneForBoth(String phone) {
+        Customer cus = new CustomerDao(conn).findByPhoneNumber(phone);
+        AgentDao agentDao = new AgentDao(conn);
+        Agent a = agentDao.findByPhoneNumber(phone);
+
+        if (cus != null) {
+            return true;
+        } else return a != null;
+    }
 }

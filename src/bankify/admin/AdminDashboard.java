@@ -43,7 +43,7 @@ public class AdminDashboard extends JFrame {
 
     private void initComponents() {
         // Sidebar
-        AdminSidebar sidebar = new AdminSidebar(this, "Dashboard", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "Dashboard", agent, agentDao, conn);
         sidebar.setBackground(new Color(255, 255, 255));
 
         // Content Panel (using same style as HomePage)
@@ -261,17 +261,17 @@ public class AdminDashboard extends JFrame {
                 newPage = new AdminUsersPage(conn);
                 break;
             case "Accounts":
-                 newPage = new AdminAccountsPage(conn);
+                 newPage = new AdminAccountsPage(agent, agentDao, conn);
                break;
             case "Transactions":
-                newPage = new AdminTransactionsPage(conn); // FIXED: Removed message box
+                newPage = new AdminTransactionsPage(agent, agentDao, conn); // FIXED: Removed message box
                 break;
 
         }
 
         if (newPage != null) {
             // Create new sidebar with updated active page
-            AdminSidebar newSidebar = new AdminSidebar(newPage, pageName, conn);
+            AdminSidebar newSidebar = new AdminSidebar(newPage, pageName, agent, agentDao, conn);
 
             // Add sidebar to the new page
             if (newPage.getContentPane() instanceof JPanel) {

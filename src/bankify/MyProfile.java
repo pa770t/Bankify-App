@@ -400,7 +400,7 @@ public class MyProfile extends JFrame {
             // Check if phone number is already used by ANOTHER user
             AccountDao accountDao = new AccountDao(conn);
             Account userAcc = accountDao.getAccountByNumber(phone);
-            Customer cus = customerDao.findByPhonenumber(phone);
+            Customer cus = customerDao.findByPhoneNumber(phone);
             if ((cus != null && cus.getCustomerId() != customer.getCustomerId()) || userAcc != null) {
                 err6.setText("Phone number already used!");
                 hasError = true;

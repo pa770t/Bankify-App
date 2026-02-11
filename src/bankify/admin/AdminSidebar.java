@@ -18,9 +18,11 @@ public class AdminSidebar extends JPanel {
     private static Connection conn;
     
     // Constructor မှာ activePage ကို လက်ခံပါ
-    public AdminSidebar(JFrame parentFrame, String activePage, Connection connection) {
+    public AdminSidebar(JFrame parentFrame, String activePage, Agent ag, AgentDao agd, Connection connection) {
         this.parentFrame = parentFrame;
         this.activePage = activePage;
+        agent = ag;
+        agentDao = agd;
         conn = connection;
         
         // Initialize UI components
@@ -122,17 +124,17 @@ public class AdminSidebar extends JPanel {
             } else if (text.equals("Accounts")) {
                 // Check if already on Accounts page
                 if (!activePage.equals("Accounts")) {
-                    navigate(new AdminAccountsPage(conn));
+                    navigate(new AdminAccountsPage(agent, agentDao, conn));
                 }
             } else if (text.equals("Transactions")) {
                 // Check if already on Transactions page
                 if (!activePage.equals("Transactions")) {
-                    navigate(new AdminTransactionsPage(conn));
+                    navigate(new AdminTransactionsPage(agent, agentDao, conn));
                 }
             } else if (text.equals("Settings")) {
                 // Check if already on Settings page
                 if (!activePage.equals("Settings")) {
-                    navigate(new AdminSettingsPage(conn));
+                    navigate(new AdminSettingsPage(agent, agentDao, conn));
                 }
             }
         });
@@ -179,7 +181,7 @@ public class AdminSidebar extends JPanel {
         }
          
         // Create new sidebar with updated active page
-        AdminSidebar newSidebar = new AdminSidebar(page, newActivePage, conn);
+        AdminSidebar newSidebar = new AdminSidebar(page, newActivePage, agent, agentDao, conn);
         
         // If your pages use BorderLayout, you can add the sidebar to WEST
         if (page.getContentPane() instanceof JPanel) {

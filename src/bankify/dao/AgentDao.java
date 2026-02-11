@@ -77,6 +77,29 @@ public class AgentDao {
         return null;
     }
 
+    public Agent findByPhoneNumber(String phoneNumber) {
+        String sql = "SELECT * FROM employee WHERE phone_number = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phoneNumber);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                Agent a = new Agent();
+                a.setAgentId(rs.getInt("employee_id"));
+                a.setFullName(rs.getString("full_name"));
+                a.setRole(rs.getString("role"));
+                a.setGender(rs.getString("gender"));
+                a.setEmail(rs.getString("email"));
+                a.setPhoneNumber(rs.getString("phone_number"));
+                a.setAddress(rs.getString("address"));
+                a.setPassword(rs.getString("password"));
+                return a;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public Agent findById(long agentId) {
         String sql = "SELECT * FROM employee WHERE employee_id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {

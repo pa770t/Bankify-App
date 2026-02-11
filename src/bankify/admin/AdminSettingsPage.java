@@ -1,6 +1,8 @@
 package bankify.admin;
 
+import bankify.Agent;
 import bankify.AgentLogin;
+import bankify.dao.AgentDao;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,9 +16,13 @@ public class AdminSettingsPage extends JFrame {
     // Main Color Definition
     private final Color PRIMARY_COLOR = new Color(30, 127, 179);
     private final Color PILL_COLOR = new Color(0, 191, 255);
+    private static Agent agent;
+    private static AgentDao agentDao;
     private static Connection conn;
 
-    public AdminSettingsPage(Connection connection) {
+    public AdminSettingsPage(Agent ag, AgentDao agd, Connection connection) {
+        agent = ag;
+        agentDao = agd;
         conn = connection;
         initializeUI();
     }
@@ -29,7 +35,7 @@ public class AdminSettingsPage extends JFrame {
         setLayout(new BorderLayout());
 
         // 1. Add Sidebar
-        AdminSidebar sidebar = new AdminSidebar(this, "Settings", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "Settings", agent, agentDao, conn);
         add(sidebar, BorderLayout.WEST);
 
         // 2. Add Main Content
@@ -40,64 +46,40 @@ public class AdminSettingsPage extends JFrame {
     private JPanel createMainContent() {
         JPanel contentPanel = new JPanel();
         contentPanel.setBackground(PRIMARY_COLOR);
-        contentPanel.setLayout(new GridBagLayout()); 
+        contentPanel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
-     // --- 1. Header (Pill Shape with Icon) ---
-        // အခြားပေ့ခ်ျတွေနဲ့ အမြင့် (y-axis) တူအောင် Insets ရဲ့ top ကို 60 ပေးပါမယ်
-        // GridBagLayout မှာ အခြားပေ့ခ်ျတွေလို အတိအကျနေရာချနိုင်ဖို့ Insets ကို အခုလိုပြင်ပါ-
+        // --- 1. Header (Pill Shape with Icon) ---
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2; 
-        
-        // အပေါ်ကနေ 60px ချလိုက်တာဟာ အခြားပေ့ခ်ျတွေရဲ့ setBounds(x, 60, w, h) နဲ့ တူသွားစေပါတယ်
-        gbc.insets = new Insets(60, 0, 80, 0); 
-        gbc.anchor = GridBagConstraints.CENTER; // PAGE_START အစား CENTER သုံးခြင်းဖြင့် ပိုညီသွားပါမယ်
-        
+        gbc.gridwidth = 1;
+        gbc.insets = new Insets(60, 0, 80, 0);
+        gbc.anchor = GridBagConstraints.CENTER;
+
         PillPanel headerPill = new PillPanel("Settings", "/Resources/settings2.png");
-        // Pill size ကိုလည်း အခြားပေ့ခ်ျတွေနဲ့ တူအောင် (260, 70) လို့ အောက်က PillPanel class မှာ ပြင်ပါမယ်
         contentPanel.add(headerPill, gbc);
 
         // --- 2. Menu Options Grid ---
-        // အကွာအဝေး သတ်မှတ်ချက်များ (ဒီဂဏန်းတွေကို လိုသလို ထပ်ပြင်နိုင်ပါတယ်)
-        int hGap = 80; // ဘယ်/ညာ ခလုတ်နှစ်ခုကြား အကွာအဝေး
-        int vGap = 80; // အပေါ်တန်းနဲ့ အောက်တန်းကြား အကွာအဝေး
-        
-        // -- Row 1, Col 1: My Profile --
-//        gbc.gridx = 0;
-//        gbc.gridy = 1;
-//        gbc.gridwidth = 1;
-//        // Right ဘက်မှာ hGap တစ်ဝက်, Bottom မှာ vGap ထည့်ပါတယ်
-//        gbc.insets = new Insets(0, 0, vGap, hGap/2);
-//        gbc.anchor = GridBagConstraints.CENTER;
-//        addMenuOption(contentPanel, gbc, "<html><center>Admin<br>Profile</center></html>", "/Resources/my_profile.png", e -> openMyProfilePage());
+        int vGap = 60; // Vertical gap between buttons
 
-        // -- Row 1, Col 2: Change Password --
-        gbc.gridx = 1;
+        // -- Change Password --
+        gbc.gridx = 0;
         gbc.gridy = 1;
-        // Left ဘက်မှာ hGap တစ်ဝက်, Bottom မှာ vGap
-        gbc.insets = new Insets(0, hGap/2, vGap, 0);
+        gbc.gridwidth = 1;
+        gbc.insets = new Insets(0, 0, vGap, 0); // Bottom gap
         addMenuOption(contentPanel, gbc, "<html><center>Change<br>Password</center></html>", "/Resources/change_password.png", e -> openChangePasswordPage());
 
-        // -- Row 2, Col 1: Deactivate Account --
+        // -- Logout --
         gbc.gridx = 0;
         gbc.gridy = 2;
-        // Row 2 ဖြစ်တဲ့အတွက် Bottom မှာ space မလိုတော့ပါ (0 ထားလိုက်ပါတယ်)
-        gbc.insets = new Insets(0, 0, 0, hGap + 100);
-        addMenuOption(contentPanel, gbc, "<html><center>Deactivate<br>Account</center></html>", "/Resources/deactivate_account.png", e -> openDeactivateAccountPage());
-
-        // -- Row 2, Col 2: Logout --
-        gbc.gridx = 1;
-        gbc.gridy = 2;
-        gbc.insets = new Insets(0, hGap + 100, 0, 0);
+        gbc.gridwidth = 1;
+        gbc.insets = new Insets(0, 0, 0, 0); // No extra insets needed, perfectly centered
         addMenuOption(contentPanel, gbc, "Log Out", "/Resources/logout.png", e -> openLogoutPage());
 
-        // --- 3. Pusher Component ---
+        // --- 3. Pusher Component (Pushes everything up) ---
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        gbc.insets = new Insets(0, 0, 0, 0); // Reset insets
-        gbc.weighty = 1.0; 
+        gbc.weighty = 1.0;
         contentPanel.add(Box.createGlue(), gbc);
 
         return contentPanel;
@@ -107,12 +89,12 @@ public class AdminSettingsPage extends JFrame {
     private void addMenuOption(JPanel panel, GridBagConstraints gbc, String text, String iconPath, java.awt.event.ActionListener action) {
         JPanel itemPanel = new JPanel();
         itemPanel.setLayout(new BoxLayout(itemPanel, BoxLayout.Y_AXIS));
-        itemPanel.setOpaque(false); 
+        itemPanel.setOpaque(false);
 
         // 1. Icon
         JLabel iconLabel = new JLabel();
         iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         URL imgUrl = getClass().getResource(iconPath);
         if (imgUrl != null) {
             ImageIcon icon = new ImageIcon(imgUrl);
@@ -122,58 +104,41 @@ public class AdminSettingsPage extends JFrame {
             iconLabel.setText("Icon Missing");
             iconLabel.setForeground(Color.WHITE);
         }
-        
+
         // 2. Button
         RoundedButton2 btn = new RoundedButton2(text);
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         btn.setPreferredSize(new Dimension(160, 60));
-        btn.setMaximumSize(new Dimension(160, 60)); 
+        btn.setMaximumSize(new Dimension(160, 60));
         btn.addActionListener(action);
 
         // Add with spacing
         itemPanel.add(iconLabel);
-        itemPanel.add(Box.createVerticalStrut(15)); 
+        itemPanel.add(Box.createVerticalStrut(15));
         itemPanel.add(btn);
 
         panel.add(itemPanel, gbc);
     }
 
 // --- Navigation Methods ---
-    
-    // 1. My Profile Page သို့သွားရန်
-//    private void openMyProfilePage() {
-//        // လက်ရှိ Settings Page ကို ပိတ်မည်
-//        this.dispose();
-//        // AdminMyProfile Page အသစ်ကို ဖွင့်မည်
-//        new bankify.admin.AdminMyProfile(conn).setVisible(true);
-//    }
 
     // 2. Change Password Page သို့သွားရန်
     private void openChangePasswordPage() {
         this.dispose();
-        // Change Password class နာမည်ကို မိမိပေးထားသည့်အတိုင်း ပြင်ဆင်ပါ
-        new bankify.admin.AdminChangePassword(conn).setVisible(true);
-        
-    }
+        new bankify.admin.AdminChangePassword(agent, agentDao, conn).setVisible(true);
 
-    // 3. Deactivate Account Page သို့သွားရန်
-    private void openDeactivateAccountPage() {
-        this.dispose();
-        // Deactivate Account class နာမည်ကို မိမိပေးထားသည့်အတိုင်း ပြင်ဆင်ပါ
-        new bankify.admin.AdminDeactivateAccount(conn).setVisible(true);
-        
     }
 
     // 4. Logout ပြုလုပ်ရန်
-    private void openLogoutPage() { 
+    private void openLogoutPage() {
         int choice = JOptionPane.showConfirmDialog(
-            this, 
-            "Are you sure you want to log out?", 
-            "Logout Confirmation", 
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
+                this,
+                "Are you sure you want to log out?",
+                "Logout Confirmation",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
         );
-        
+
         if (choice == JOptionPane.YES_OPTION) {
             this.dispose();
             // Login Page သို့ ပြန်ပို့ရန် (Login class ရှိရာ path ကို ထည့်ပါ)
@@ -190,7 +155,7 @@ public class AdminSettingsPage extends JFrame {
             this.text = text;
             setOpaque(false);
             setPreferredSize(new Dimension(280, 70)); // Size slightly larger for icon
-            
+
             // Load Icon
             URL url = getClass().getResource(iconPath);
             if (url != null) {
@@ -212,11 +177,11 @@ public class AdminSettingsPage extends JFrame {
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Tw Cen MT", Font.BOLD, 26));
             FontMetrics fm = g2.getFontMetrics();
-            
+
             int iconSize = 40; // Icon width/height
             int gap = 15;      // Space between icon and text
             int textWidth = fm.stringWidth(text);
-            
+
             // Calculate total width to center both
             int totalContentWidth = iconSize + gap + textWidth;
             int startX = (getWidth() - totalContentWidth) / 2;
@@ -247,7 +212,7 @@ public class AdminSettingsPage extends JFrame {
             setCursor(new Cursor(Cursor.HAND_CURSOR));
             setForeground(Color.WHITE);
             setFont(new Font("Tw Cen MT", Font.BOLD, 18));
-            
+
             addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent e) { currentColor = hoverColor; repaint(); }
                 public void mouseExited(MouseEvent e) { currentColor = new Color(0, 191, 255); repaint(); }
@@ -267,6 +232,6 @@ public class AdminSettingsPage extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminSettingsPage(conn).setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminSettingsPage(agent, agentDao, conn).setVisible(true));
     }
 }

@@ -1,6 +1,8 @@
 package bankify.admin;
 
+import bankify.Agent;
 import bankify.dao.AdminDao;
+import bankify.dao.AgentDao;
 
 import javax.swing.*;
 import javax.swing.table.*;
@@ -21,12 +23,16 @@ public class AdminAccountsPage extends JFrame {
     private JComboBox<String> filterComboBox;
     private JTextField searchField;
     private static Connection conn;
+    private static Agent agent;
+    private static AgentDao agentDao;
     
     // Sample data for demo
     private List<Account> accountList;
     private static AdminDao adminDao;
     
-    public AdminAccountsPage(Connection connection) {
+    public AdminAccountsPage(Agent ag, AgentDao agd, Connection connection) {
+        agent = ag;
+        agentDao = agd;
         conn = connection;
         adminDao = new AdminDao(conn);
 
@@ -66,7 +72,7 @@ public class AdminAccountsPage extends JFrame {
     
     private void initComponents() {
         // Sidebar
-        AdminSidebar sidebar = new AdminSidebar(this, "Accounts", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "Accounts", agent, agentDao, conn);
         sidebar.setBackground(new Color(255, 255, 255));
         
         // Main content panel
@@ -727,7 +733,7 @@ public class AdminAccountsPage extends JFrame {
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            AdminAccountsPage frame = new AdminAccountsPage(conn);
+            AdminAccountsPage frame = new AdminAccountsPage(agent, agentDao, conn);
             frame.setVisible(true);
         });
     }

@@ -1,5 +1,10 @@
 package bankify.admin;
 
+import bankify.Agent;
+import bankify.dao.AgentDao;
+import bankify.service.AuthService;
+import org.mindrot.jbcrypt.BCrypt;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -12,9 +17,13 @@ public class AdminChangePassword extends JFrame {
     private JPanel contentPanel;
     private RoundedPasswordField pwtCurrent, pwtNew, pwtConfirm;
     private JLabel errCurrent, errNew, errConfirm, successLabel;
+    private static Agent agent;
+    private static AgentDao agentDao;
     private static Connection conn;
 
-    public AdminChangePassword(Connection connection) {
+    public AdminChangePassword(Agent ag, AgentDao agd, Connection connection) {
+        agent = ag;
+        agentDao = agd;
         conn = connection;
 
         setTitle("Bankify Admin - Change Password");
@@ -25,7 +34,7 @@ public class AdminChangePassword extends JFrame {
 
         // Sidebar - Admin Sidebar ကို သုံးထားပါတယ်
         // "AdminSettings" လို့ နာမည်ပေးထားခြင်းဖြင့် Sidebar က Settings ကိုနှိပ်ရင် AdminSettingsPage ကို ပြန်ရောက်ပါမယ်
-        AdminSidebar sidebar = new AdminSidebar(this, "AdminChangePass", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "AdminChangePass", agent, agentDao, conn);
 
         contentPanel = createContentPanel();
 
@@ -106,7 +115,7 @@ public class AdminChangePassword extends JFrame {
         btnCancel.setBounds(310, 550, 120, 50);
         btnCancel.addActionListener(e -> {
             dispose();
-            new AdminSettingsPage(conn).setVisible(true);
+            new AdminSettingsPage(agent, agentDao, conn).setVisible(true);
         });
         contentPanel.add(btnCancel);
 
@@ -119,32 +128,37 @@ public class AdminChangePassword extends JFrame {
     }
 
     private void handlePasswordChange() {
+        // 1. Reset Labels
         errCurrent.setText("");
         errNew.setText("");
         errConfirm.setText("");
         successLabel.setText("");
 
+        // 2. Get Input
         String current = new String(pwtCurrent.getPassword());
         String newPass = new String(pwtNew.getPassword());
         String confirm = new String(pwtConfirm.getPassword());
 
         boolean hasError = false;
-        String savedPassword = "Aung1234@@"; // Dummy
 
+        // 3. UI Validation
         if (current.isEmpty()) {
             errCurrent.setText("Please enter current password!");
             hasError = true;
-        } else if (!current.equals(savedPassword)) {
+        } else if (!BCrypt.checkpw(current, agent.getPassword())) {
+            // Use BCrypt check for hashed password
             errCurrent.setText("Current password is incorrect!");
             hasError = true;
         }
 
+        // Regex: At least 8 chars, 1 upper, 1 lower, 1 digit, 1 special char
         String strongPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$";
+
         if (newPass.isEmpty()) {
             errNew.setText("Please enter new password!");
             hasError = true;
         } else if (!newPass.matches(strongPattern)) {
-            errNew.setText("8+ chars, upper, lower, number & special!");
+            errNew.setText("<html>8+ chars, Upper, Lower,<br>Number & Special char req.</html>");
             hasError = true;
         }
 
@@ -156,11 +170,31 @@ public class AdminChangePassword extends JFrame {
             hasError = true;
         }
 
-        if (!hasError) {
-            successLabel.setText("Password changed successfully!");
-            pwtCurrent.setText("");
-            pwtNew.setText("");
-            pwtConfirm.setText("");
+        if (hasError) return;
+
+        // 4. Backend Processing
+        try {
+            // Initialize dependencies
+            AuthService authService = new AuthService(null, conn);
+
+            // Call the service method you created
+            boolean isChanged = authService.changeAdminPassword(agent.getAgentId(), current, newPass);
+
+            if (isChanged) {
+                successLabel.setText("Password updated successfully!");
+                pwtCurrent.setText("");
+                pwtNew.setText("");
+                pwtConfirm.setText("");
+                JOptionPane.showMessageDialog(this, "Password changed successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                // If it failed, it's usually because the old password didn't match
+                // (since we already validated the new password format in UI)
+                errCurrent.setText("Incorrect current password.");
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -263,6 +297,6 @@ public class AdminChangePassword extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminChangePassword(conn).setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminChangePassword(agent, agentDao, conn).setVisible(true));
     }
 }

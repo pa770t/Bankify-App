@@ -1,5 +1,8 @@
 package bankify.admin;
 
+import bankify.Agent;
+import bankify.dao.AgentDao;
+
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
@@ -15,8 +18,12 @@ public class AdminSecurityPage extends JFrame {
     private JTextField searchField;
     private JComboBox<String> filterCombo;
     private static Connection conn;
+    private static Agent agent;
+    private static AgentDao agentDao;
 
-    public AdminSecurityPage(Connection connection) {
+    public AdminSecurityPage(Agent ag, AgentDao agd, Connection connection) {
+        agent = ag;
+        agentDao = agd;
         conn = connection;
 
         setTitle("Bankify - Security Management");
@@ -30,7 +37,7 @@ public class AdminSecurityPage extends JFrame {
     }
 
     private void initUI() {
-        AdminSidebar sidebar = new AdminSidebar(this, "Security", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "Security", agent, agentDao, conn);
         add(sidebar, BorderLayout.WEST);
 
         JPanel contentPanel = new JPanel(new BorderLayout(0, 20));
@@ -295,7 +302,7 @@ public class AdminSecurityPage extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            AdminSecurityPage page = new AdminSecurityPage(conn);
+            AdminSecurityPage page = new AdminSecurityPage(agent, agentDao, conn);
             page.setVisible(true);
         });
     }

@@ -1,5 +1,8 @@
 package bankify.admin;
 
+import bankify.Agent;
+import bankify.dao.AgentDao;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -13,8 +16,12 @@ public class AdminDeactivateAccount extends JFrame {
     private RoundedPasswordField pwtPassword;
     private JLabel errPassword;
     private static Connection conn;
+    private static Agent agent;
+    private static AgentDao agentDao;
 
-    public AdminDeactivateAccount(Connection connection) {
+    public AdminDeactivateAccount(Agent ag, AgentDao agd, Connection connection) {
+        agent = ag;
+        agentDao = agd;
         conn = connection;
 
         setTitle("Bankify Admin - Deactivate Account");
@@ -25,7 +32,7 @@ public class AdminDeactivateAccount extends JFrame {
 
         // Sidebar - AdminSidebar ကို သုံးထားပါတယ်
         // "AdminDeactivate" လို့ ပေးထားလို့ Sidebar က Settings ကို နှိပ်ရင် Settings Page ကို ပြန်သွားမှာပါ
-        AdminSidebar sidebar = new AdminSidebar(this, "AdminDeactivate", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "AdminDeactivate", agent, agentDao, conn);
 
         // Content
         contentPanel = createContentPanel();
@@ -90,15 +97,6 @@ public class AdminDeactivateAccount extends JFrame {
         errPassword.setForeground(Color.RED);
         errPassword.setFont(new Font("Tw Cen MT", Font.BOLD, 16));
         contentPanel.add(errPassword);
-
-        // --- Buttons ---
-        RoundedCornerButton btnCancel = new RoundedCornerButton("Cancel", new Color(50, 205, 50));
-        btnCancel.setBounds(300, 480, 120, 50);
-        btnCancel.addActionListener(e -> {
-            dispose();
-            new AdminSettingsPage(conn).setVisible(true); // Settings Page ကို ပြန်သွားရန်
-        });
-        contentPanel.add(btnCancel);
 
         RoundedCornerButton btnOK = new RoundedCornerButton("OK", new Color(220, 20, 60));
         btnOK.setBounds(480, 480, 120, 50);
@@ -229,6 +227,6 @@ public class AdminDeactivateAccount extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminDeactivateAccount(conn).setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminDeactivateAccount(agent, agentDao, conn).setVisible(true));
     }
 }

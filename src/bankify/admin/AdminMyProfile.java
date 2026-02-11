@@ -1,5 +1,7 @@
 package bankify.admin;
 
+import bankify.Agent;
+import bankify.dao.AgentDao;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
 
@@ -20,8 +22,12 @@ public class AdminMyProfile extends JFrame {
     private DatePicker datePicker;
     private JLabel err1, err2, err3, err4, err5, err6;
     private static Connection conn;
+    private static Agent agent;
+    private static AgentDao agentDao;
 
-    public AdminMyProfile(Connection connection) {
+    public AdminMyProfile(Agent ag, AgentDao agd, Connection connection) {
+        agent = ag;
+        agentDao = agd;
         conn = connection;
 
         setTitle("Bankify Admin - My Profile");
@@ -30,7 +36,7 @@ public class AdminMyProfile extends JFrame {
         setLocationRelativeTo(null);
         getContentPane().setLayout(new BorderLayout());
 
-        AdminSidebar sidebar = new AdminSidebar(this, "AdminProfile", conn);
+        AdminSidebar sidebar = new AdminSidebar(this, "AdminProfile", agent, agentDao, conn);
         
         contentPanel = createContentPanel();
 
@@ -308,6 +314,6 @@ public class AdminMyProfile extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdminMyProfile(conn).setVisible(true));
+        SwingUtilities.invokeLater(() -> new AdminMyProfile(agent, agentDao, conn).setVisible(true));
     }
 }

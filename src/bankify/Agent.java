@@ -8,6 +8,7 @@ public class Agent {
     private String email;
     private String address;
     private String password;
+    private String status;
     private java.sql.Timestamp createdAt;
 
 
@@ -33,6 +34,9 @@ public class Agent {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

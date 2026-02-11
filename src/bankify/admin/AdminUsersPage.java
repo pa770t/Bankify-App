@@ -7,6 +7,8 @@ import bankify.dao.AccountDao;
 import bankify.dao.AdminDao;
 import bankify.dao.AgentDao;
 import bankify.dao.CustomerDao;
+import bankify.service.EmailService;
+import bankify.service.PasswordService;
 import org.mindrot.jbcrypt.BCrypt;
 
 import javax.swing.*;
@@ -14,7 +16,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -33,7 +36,6 @@ public class AdminUsersPage extends JFrame {
     private static Connection conn;
 
     public AdminUsersPage(Connection connection) {
-        // In a real app, you would pass the connection, but this works for your setup
         conn = connection;
         customerDao = new CustomerDao(conn);
         adminDao = new AdminDao(conn);
@@ -130,10 +132,15 @@ public class AdminUsersPage extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setBackground(new Color(240, 242, 245));
         JButton addButton = createButton("Add User", new Color(39, 174, 96));
+        JButton editButton = createButton("Edit User", new Color(52, 152, 219));
         JButton deleteButton = createButton("Delete User", new Color(231, 76, 60));
+
         addButton.addActionListener(e -> addUser());
+        editButton.addActionListener(e -> editUser());
         deleteButton.addActionListener(e -> deleteUser());
+
         buttonPanel.add(addButton);
+        buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
         toolbarPanel.add(searchPanel);
         toolbarPanel.add(filterPanel);
@@ -169,6 +176,16 @@ public class AdminUsersPage extends JFrame {
         usersTable.setFont(new Font("Tw Cen MT", Font.PLAIN, 14));
         usersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+        usersTable.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent mouseEvent) {
+                JTable table = (JTable) mouseEvent.getSource();
+                Point point = mouseEvent.getPoint();
+                if (mouseEvent.getClickCount() == 2 && table.getSelectedRow() != -1) {
+                    editUser();
+                }
+            }
+        });
+
         JTableHeader header = usersTable.getTableHeader();
         header.setFont(new Font("Tw Cen MT", Font.BOLD, 16));
         header.setBackground(new Color(30, 127, 179));
@@ -194,22 +211,48 @@ public class AdminUsersPage extends JFrame {
 
             for (User user : users) {
                 Account account = accountDao.getAccountByCustomerId(user.getId());
+                agent = agentDao1.findByEmail(user.getEmail());
+
+                String displayRole = "Customer";
+                String displayStatus = "Inactive";
+
+                if (agent != null) {
+                    // Logic for Employees (Admin/Agent)
+                    if ("SYSTEM".equalsIgnoreCase(agent.getRole())) {
+                        displayRole = "Admin";
+                    } else {
+                        displayRole = "Agent";
+                    }
+
+                    // Logic for Employee Status
+                    if (agent.getStatus() != null) {
+                        displayStatus = agent.getStatus();
+                    } else {
+                        displayStatus = "Active";
+                    }
+
+                } else {
+                    // Logic for Customers
+                    displayRole = "Customer";
+                    if (account != null) {
+                        displayStatus = "Active";
+                    }
+                }
+
+                // IMPORTANT: Update the User object with calculated values
+                // This ensures searchUsers() uses the correct display data
+                user.setRole(displayRole);
+                user.setStatus(displayStatus);
+
                 Object[] rowData = {
                         user.getId(),
                         user.getName(),
                         user.getEmail(),
                         user.getPhone(),
-                        user.getRole(),
-                        user.getStatus(),
+                        displayRole,
+                        displayStatus,
                         user.getJoinDate()
                 };
-                agent = agentDao1.findByEmail(user.getEmail());
-
-                if (agent != null && agent.getRole().equalsIgnoreCase("System")) {
-                    rowData[5] = "Active";
-                } else if (agent == null && account == null) {
-                    rowData[5] = "Inactive";
-                }
                 tableModel.addRow(rowData);
             }
 
@@ -219,20 +262,37 @@ public class AdminUsersPage extends JFrame {
     }
 
     private void searchUsers() {
-        String searchText = searchField.getText().toLowerCase();
+        String searchText = searchField.getText().toLowerCase().trim();
+
+        // If search is empty, reload the full table
         if (searchText.isEmpty()) {
             populateTable();
             return;
         }
 
         tableModel.setRowCount(0);
+
         for (User user : users) {
-            if (user.getName().toLowerCase().contains(searchText) ||
-                    user.getEmail().toLowerCase().contains(searchText) ||
-                    (user.getPhone() != null && user.getPhone().contains(searchText))) {
+            // Null-safe checks
+            String id = String.valueOf(user.getId());
+            String name = user.getName() != null ? user.getName().toLowerCase() : "";
+            String email = user.getEmail() != null ? user.getEmail().toLowerCase() : "";
+            String phone = user.getPhone() != null ? user.getPhone() : "";
+
+            // Check if search text matches ID, Name, Email, or Phone
+            if (id.equals(searchText) ||
+                    name.contains(searchText) ||
+                    email.contains(searchText) ||
+                    phone.contains(searchText)) {
+
                 Object[] rowData = {
-                        user.getId(), user.getName(), user.getEmail(), user.getPhone(),
-                        user.getRole(), user.getStatus(), user.getJoinDate()
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getPhone(),
+                        user.getRole(),   // Uses value set in populateTable
+                        user.getStatus(), // Uses value set in populateTable
+                        user.getJoinDate()
                 };
                 tableModel.addRow(rowData);
             }
@@ -245,17 +305,13 @@ public class AdminUsersPage extends JFrame {
 
         for (User user : users) {
             boolean matches = false;
+            String userRole = user.getRole();
+
             if ("All Users".equals(filter)) {
                 matches = true;
             } else if (filter.equalsIgnoreCase(user.getStatus())) {
                 matches = true;
-            } else if (filter.equalsIgnoreCase(user.getRole())) {
-                matches = true;
-            } else if ("Admin".equalsIgnoreCase(filter) &&
-                    "SYSTEM".equalsIgnoreCase(user.getRole())) {
-                matches = true;
-            } else if ("Agent".equalsIgnoreCase(filter) &&
-                    "STAFF".equalsIgnoreCase(user.getRole())) {
+            } else if (filter.equalsIgnoreCase(userRole)) {
                 matches = true;
             }
 
@@ -269,64 +325,134 @@ public class AdminUsersPage extends JFrame {
         }
     }
 
+    private void editUser() {
+        int selectedRow = usersTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a user to edit", "No Selection", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int userId = (int) tableModel.getValueAt(selectedRow, 0);
+        User userToEdit = users.stream().filter(u -> u.getId() == userId).findFirst().orElse(null);
+
+        if (userToEdit == null) {
+            JOptionPane.showMessageDialog(this, "User not found!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        UserDialog dialog = new UserDialog(this, "Edit User", userToEdit);
+        dialog.setVisible(true);
+
+        if (dialog.isConfirmed()) {
+            User updatedUser = dialog.getUser();
+
+            try {
+                if ("Customer".equalsIgnoreCase(updatedUser.getRole())) {
+                    Customer customer = new Customer();
+                    customer.setCustomerId(updatedUser.getId());
+
+                    String[] nameParts = updatedUser.getName().split(" ", 2);
+                    customer.setFirstName(nameParts[0]);
+                    customer.setLastName(nameParts.length > 1 ? nameParts[1] : "");
+
+                    customer.setEmail(updatedUser.getEmail());
+                    customer.setPhoneNumber(updatedUser.getPhone());
+                    customer.setAddress(updatedUser.getAddress());
+
+                    adminDao.updateCustomer(customer);
+
+                } else {
+                    Agent agent = new Agent();
+                    agent.setAgentId(updatedUser.getId());
+                    agent.setFullName(updatedUser.getName());
+                    agent.setEmail(updatedUser.getEmail());
+                    agent.setPhoneNumber(updatedUser.getPhone());
+                    agent.setAddress(updatedUser.getAddress());
+                    agent.setGender(updatedUser.getGender());
+
+                    if ("Admin".equalsIgnoreCase(updatedUser.getRole())) {
+                        agent.setRole("SYSTEM");
+                    } else {
+                        agent.setRole("STAFF");
+                    }
+
+                    adminDao.updateAgent(agent);
+                }
+
+                int index = users.indexOf(userToEdit);
+                if (index != -1) {
+                    users.set(index, updatedUser);
+                }
+                populateTable();
+                JOptionPane.showMessageDialog(this, "User updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Database Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private void addUser() {
         UserDialog dialog = new UserDialog(this, "Add New User", null);
         dialog.setVisible(true);
 
         if (dialog.isConfirmed()) {
             User newUser = dialog.getUser();
+            EmailService emailService = new EmailService();
 
             if ("Customer".equalsIgnoreCase(newUser.getRole())) {
                 Customer dbCustomer = new Customer();
-                dbCustomer.setFirstName(dialog.getFirstName());
-                dbCustomer.setLastName(dialog.getLastName());
-                dbCustomer.setEmail(dialog.getEmail());
-                dbCustomer.setPhoneNumber(dialog.getPhone());
-                dbCustomer.setAddress(dialog.getAddress()); // Set Address for DB
+                String[] nameParts = newUser.getName().split(" ", 2);
+                dbCustomer.setFirstName(nameParts[0]);
+                dbCustomer.setLastName(nameParts.length > 1 ? nameParts[1] : "");
 
+                dbCustomer.setEmail(newUser.getEmail());
+                // Handle potentially null phone if hidden
+                dbCustomer.setPhoneNumber(newUser.getPhone().isEmpty() ? null : newUser.getPhone());
+                dbCustomer.setAddress(newUser.getAddress());
 
-                // Hashing password
-                String plainPassword = "TempPass@123";
+                String plainPassword = PasswordService.generateRandomPassword(10);
                 String hashedPassword = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
                 dbCustomer.setPassword(hashedPassword);
                 dbCustomer.setFirstTimeLogin(true);
 
                 Customer createdCustomer = adminDao.createCustomerByAdmin(dbCustomer);
                 if (createdCustomer != null) {
+                    emailService.sendCustomerCreatedEmail(createdCustomer, plainPassword);
                     newUser.setId(createdCustomer.getCustomerId());
                 } else {
-                    JOptionPane.showMessageDialog(this, "Failed to save Customer to database!", "Database Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Failed to save Customer!", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-            }
-
-            else if ("Agent".equalsIgnoreCase(newUser.getRole())) {
+            } else {
                 Agent agent = new Agent();
-                agent.setFullName(dialog.getFirstName() + " " + dialog.getLastName());
-                agent.setEmail(dialog.getEmail());
+                agent.setFullName(newUser.getName());
+                agent.setEmail(newUser.getEmail());
                 agent.setGender(newUser.getGender());
-                agent.setRole("STAFF");
-                agent.setPhoneNumber(dialog.getPhone());
-                agent.setAddress(dialog.getAddress());
+                agent.setPhoneNumber(newUser.getPhone());
+                agent.setAddress(newUser.getAddress());
 
-                // Hashing password
-                String plainPassword = "TempPass@123";
+                if ("Admin".equalsIgnoreCase(newUser.getRole())) {
+                    agent.setRole("SYSTEM");
+                } else {
+                    agent.setRole("STAFF");
+                }
+
+                String plainPassword = PasswordService.generateRandomPassword(10);
                 agent.setPassword(plainPassword);
 
                 Agent createdAgent = adminDao.createAgent(agent.getFullName(), agent.getRole(), agent.getGender(),
                         agent.getEmail(), agent.getPhoneNumber(), agent.getAddress(), agent.getPassword());
                 if (createdAgent != null) {
+                    emailService.sendAgentCreatedEmail(createdAgent, plainPassword);
                     newUser.setId(createdAgent.getAgentId());
                 } else {
-                    JOptionPane.showMessageDialog(this, "Failed to save Customer to database!", "Database Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Failed to save Agent!", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
             }
-
-            // Logic for other roles can be added here
-            // else if ("Agent".equalsIgnoreCase(newUser.getRole())) { ... }
-
-            users.add(newUser);
+            users.add(0, newUser);
             populateTable();
             JOptionPane.showMessageDialog(this, "User added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
         }
@@ -359,10 +485,65 @@ public class AdminUsersPage extends JFrame {
     }
 
     private void initializeSampleData() {
+        // 1. Fetch the raw list of users from the DAO
         this.users = adminDao.getAllUsers();
+
+        // 2. Enrich each user object with the correct Display Role and Status
+        try {
+            AccountDao accountDao = new AccountDao(conn);
+            AgentDao agentDao = new AgentDao(conn);
+
+            for (User user : this.users) {
+                // Check if the user exists in the Agent table (Employee)
+                Agent agent = agentDao.findByEmail(user.getEmail());
+
+                String displayRole;
+                String displayStatus;
+
+                if (agent != null) {
+                    // --- It is an Employee (Agent or Admin) ---
+
+                    // Map DB Role to UI Role
+                    if ("SYSTEM".equalsIgnoreCase(agent.getRole())) {
+                        displayRole = "Admin";
+                    } else {
+                        displayRole = "Agent";
+                    }
+
+                    // Map DB Status to UI Status
+                    String dbStatus = agent.getStatus();
+                    if (dbStatus != null && "SUSPENDED".equalsIgnoreCase(dbStatus)) {
+                        displayStatus = "Inactive";
+                    } else {
+                        displayStatus = "Active"; // Default to Active for employees
+                    }
+
+                } else {
+                    // --- It is a Customer ---
+                    displayRole = "Customer";
+
+                    // Check Account table to determine Status
+                    Account account = accountDao.getAccountByCustomerId(user.getId());
+
+                    // If account exists and isn't closed, they are Active
+                    if (account != null && !"CLOSED".equalsIgnoreCase(account.getStatus())) {
+                        displayStatus = "Active";
+                    } else {
+                        displayStatus = "Inactive";
+                    }
+                }
+
+                // 3. Save the calculated values into the User object
+                user.setRole(displayRole);
+                user.setStatus(displayStatus);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error initializing data: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
-    // StatusRenderer class
     private class StatusRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
@@ -372,95 +553,156 @@ public class AdminUsersPage extends JFrame {
             setFont(new Font("Tw Cen MT", Font.PLAIN, 14));
 
             String status = String.valueOf(value);
-            Color bgColor = "Active".equals(status) ? new Color(39, 174, 96) : new Color(231, 76, 60);
+            Color bgColor = "Active".equalsIgnoreCase(status) ? new Color(39, 174, 96) : new Color(231, 76, 60);
             cell.setBackground(bgColor);
             cell.setForeground(Color.WHITE);
-
-            if (cell instanceof JLabel) {
-                ((JLabel) cell).setOpaque(true);
-            }
+            if (cell instanceof JLabel) ((JLabel) cell).setOpaque(true);
             return cell;
         }
     }
 
-    // User Dialog for Add/Edit
     class UserDialog extends JDialog {
         private boolean confirmed = false;
+        private boolean isEditMode = false; // Flag to track mode
         private User user;
-        private JTextField firstNameField, lastNameField, emailField, phoneField, addressField; // Added addressField
+
+        private JTextField firstNameField, lastNameField, fullNameField, emailField, phoneField, addressField;
+        private JLabel lblFirstName, lblLastName, lblFullName, lblPhone;
         private JComboBox<String> genderCombo, roleCombo, statusCombo;
+        private JPanel formPanel;
 
         public UserDialog(JFrame parent, String title, User existingUser) {
             super(parent, title, true);
-            setSize(520, 550); // Increased Height for address
+            this.isEditMode = (existingUser != null); // Set the flag
+
+            setSize(520, 600);
             setLocationRelativeTo(parent);
             setLayout(new BorderLayout());
 
-            JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel = new JPanel(new GridBagLayout());
             formPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
             formPanel.setBackground(Color.WHITE);
 
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.insets = new Insets(8, 10, 8, 10);
-            gbc.gridx = 0;
-            gbc.ipady = 10;
+            gbc.gridx = 0; gbc.gridy = 0; gbc.ipady = 10;
 
-            // First Name
-            gbc.gridy = 0; formPanel.add(new JLabel("First Name:"), gbc);
-            gbc.gridx = 1; firstNameField = new JTextField(20); formPanel.add(firstNameField, gbc);
-            // Last Name
-            gbc.gridx = 0; gbc.gridy = 1; formPanel.add(new JLabel("Last Name:"), gbc);
-            gbc.gridx = 1; lastNameField = new JTextField(20); formPanel.add(lastNameField, gbc);
-            // Email
-            gbc.gridx = 0; gbc.gridy = 2; formPanel.add(new JLabel("Email:"), gbc);
-            gbc.gridx = 1; emailField = new JTextField(20); formPanel.add(emailField, gbc);
-            // Phone
-            gbc.gridx = 0; gbc.gridy = 3; formPanel.add(new JLabel("Phone:"), gbc);
-            gbc.gridx = 1; phoneField = new JTextField(20); formPanel.add(phoneField, gbc);
-            // Address (NEW FIELD)
-            gbc.gridx = 0; gbc.gridy = 4; formPanel.add(new JLabel("Address:"), gbc);
-            gbc.gridx = 1; addressField = new JTextField(20); formPanel.add(addressField, gbc);
-            // Gender
-            gbc.gridx = 0; gbc.gridy = 5; formPanel.add(new JLabel("Gender:"), gbc);
-            gbc.gridx = 1; genderCombo = new JComboBox<>(new String[]{"MALE", "FEMALE", "LGBTQ+"}); formPanel.add(genderCombo, gbc);
-            // Role
-            gbc.gridx = 0; gbc.gridy = 6; formPanel.add(new JLabel("Role:"), gbc);
-            gbc.gridx = 1; roleCombo = new JComboBox<>(new String[]{"Admin", "Customer", "Agent"}); formPanel.add(roleCombo, gbc);
-            // Status
-            gbc.gridx = 0; gbc.gridy = 7; formPanel.add(new JLabel("Status:"), gbc);
-            gbc.gridx = 1; statusCombo = new JComboBox<>(new String[]{"Active", "Inactive"}); formPanel.add(statusCombo, gbc);
+            // 1. Name Fields
+            gbc.gridx = 0; gbc.gridy = 0;
+            lblFirstName = new JLabel("First Name:");
+            formPanel.add(lblFirstName, gbc);
+            gbc.gridx = 1;
+            firstNameField = new JTextField(20);
+            formPanel.add(firstNameField, gbc);
+
+            gbc.gridx = 0; gbc.gridy++;
+            lblLastName = new JLabel("Last Name:");
+            formPanel.add(lblLastName, gbc);
+            gbc.gridx = 1;
+            lastNameField = new JTextField(20);
+            formPanel.add(lastNameField, gbc);
+
+            gbc.gridx = 0; gbc.gridy++;
+            lblFullName = new JLabel("Full Name:");
+            formPanel.add(lblFullName, gbc);
+            gbc.gridx = 1;
+            fullNameField = new JTextField(20);
+            formPanel.add(fullNameField, gbc);
+
+            // 2. Contact Details
+            gbc.gridx = 0; gbc.gridy++;
+            formPanel.add(new JLabel("Email:"), gbc);
+            gbc.gridx = 1;
+            emailField = new JTextField(20);
+            formPanel.add(emailField, gbc);
+
+            // Phone Field with Label Variable
+            gbc.gridx = 0; gbc.gridy++;
+            lblPhone = new JLabel("Phone:");
+            formPanel.add(lblPhone, gbc);
+            gbc.gridx = 1;
+            phoneField = new JTextField(20);
+            formPanel.add(phoneField, gbc);
+
+            gbc.gridx = 0; gbc.gridy++;
+            formPanel.add(new JLabel("Address:"), gbc);
+            gbc.gridx = 1;
+            addressField = new JTextField(20);
+            formPanel.add(addressField, gbc);
+
+            // 3. Gender
+            gbc.gridx = 0; gbc.gridy++;
+            formPanel.add(new JLabel("Gender:"), gbc);
+            gbc.gridx = 1;
+            genderCombo = new JComboBox<>(new String[]{"MALE", "FEMALE", "LGBTQ+"});
+            formPanel.add(genderCombo, gbc);
+
+            // 4. Role
+            gbc.gridx = 0; gbc.gridy++;
+            formPanel.add(new JLabel("Role:"), gbc);
+            gbc.gridx = 1;
+            roleCombo = new JComboBox<>(new String[]{"Customer", "Agent", "Admin"});
+            formPanel.add(roleCombo, gbc);
+
+            // 5. Status
+            gbc.gridx = 0; gbc.gridy++;
+            formPanel.add(new JLabel("Status:"), gbc);
+            gbc.gridx = 1;
+            statusCombo = new JComboBox<>(new String[]{"Active", "Inactive"});
+            formPanel.add(statusCombo, gbc);
+
+            roleCombo.addActionListener(e -> updateFieldVisibility((String) roleCombo.getSelectedItem()));
 
             // Populate data if editing
             if (existingUser != null) {
-                String[] nameParts = existingUser.getName().split(" ", 2);
-                firstNameField.setText(nameParts[0]);
-                lastNameField.setText(nameParts.length > 1 ? nameParts[1] : "");
-                emailField.setText(existingUser.getEmail());
-                phoneField.setText(existingUser.getPhone());
-                addressField.setText(existingUser.getAddress()); // Set Address
-                genderCombo.setSelectedItem(existingUser.getGender());
-                roleCombo.setSelectedItem(existingUser.getRole());
-                statusCombo.setSelectedItem(existingUser.getStatus());
                 user = existingUser;
+                if ("Customer".equalsIgnoreCase(user.getRole())) {
+                    String[] nameParts = user.getName().split(" ", 2);
+                    firstNameField.setText(nameParts[0]);
+                    lastNameField.setText(nameParts.length > 1 ? nameParts[1] : "");
+                } else {
+                    fullNameField.setText(user.getName());
+                }
+                emailField.setText(user.getEmail());
+                phoneField.setText(user.getPhone());
+                addressField.setText(user.getAddress());
+                genderCombo.setSelectedItem(user.getGender());
+                statusCombo.setSelectedItem(user.getStatus());
+
+                roleCombo.setSelectedItem(user.getRole());
             } else {
                 user = new User();
+                updateFieldVisibility("Customer");
             }
 
-            // Buttons
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            buttonPanel.setBorder(BorderFactory.createEmptyBorder(0,0,10,10));
+            buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 10));
             buttonPanel.setBackground(Color.WHITE);
             JButton saveButton = new RoundedButton2("Save", new Color(39, 174, 96));
             saveButton.addActionListener(e -> {
-                if (!validateForm()) return;
+                try {
+                    if (!validateForm()) return;
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
                 confirmed = true;
-                user.setName(firstNameField.getText().trim() + " " + lastNameField.getText().trim());
+
+                String role = (String) roleCombo.getSelectedItem();
+                String finalName = "";
+
+                if ("Customer".equalsIgnoreCase(role)) {
+                    finalName = firstNameField.getText().trim() + " " + lastNameField.getText().trim();
+                } else {
+                    finalName = fullNameField.getText().trim();
+                }
+
+                user.setName(finalName);
                 user.setEmail(emailField.getText().trim());
-                user.setPhone(phoneField.getText().trim());
-                user.setAddress(addressField.getText().trim()); // Get Address
+                user.setPhone(phoneField.getText().trim()); // Will be empty string if hidden
+                user.setAddress(addressField.getText().trim());
                 user.setGender((String) genderCombo.getSelectedItem());
-                user.setRole((String) roleCombo.getSelectedItem());
+                user.setRole(role);
                 user.setStatus((String) statusCombo.getSelectedItem());
 
                 if (existingUser == null) {
@@ -476,36 +718,93 @@ public class AdminUsersPage extends JFrame {
 
             add(formPanel, BorderLayout.CENTER);
             add(buttonPanel, BorderLayout.SOUTH);
+
+            updateFieldVisibility((String) roleCombo.getSelectedItem());
         }
 
-        private boolean validateForm() {
-            if (firstNameField.getText().trim().isEmpty() || lastNameField.getText().trim().isEmpty()) {
-                showError("First Name and Last Name are required."); return false;
+        private void updateFieldVisibility(String role) {
+            boolean isCustomer = "Customer".equalsIgnoreCase(role);
+
+            // Name Fields Logic
+            lblFirstName.setVisible(isCustomer);
+            firstNameField.setVisible(isCustomer);
+            lblLastName.setVisible(isCustomer);
+            lastNameField.setVisible(isCustomer);
+
+            lblFullName.setVisible(!isCustomer);
+            fullNameField.setVisible(!isCustomer);
+
+            // Phone Field Logic: Hide only if adding a Customer
+            if (isCustomer && !isEditMode) {
+                lblPhone.setVisible(false);
+                phoneField.setVisible(false);
+            } else {
+                lblPhone.setVisible(true);
+                phoneField.setVisible(true);
             }
+        }
+
+        private boolean validateForm() throws SQLException {
+            String role = (String) roleCombo.getSelectedItem();
+            AccountDao accountDao = new AccountDao(conn);
+            if ("Customer".equalsIgnoreCase(role)) {
+                if (firstNameField.getText().trim().isEmpty() || lastNameField.getText().trim().isEmpty()) {
+                    showError("First Name and Last Name are required.");
+                    return false;
+                }
+            } else {
+                if (fullNameField.getText().trim().isEmpty()) {
+                    showError("Full Name is required.");
+                    return false;
+                }
+            }
+
             if (emailField.getText().trim().isEmpty() || !emailField.getText().trim().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
-                showError("Please enter a valid email address."); return false;
+                showError("Please enter a valid email address.");
+                return false;
+            } else if (!isEditMode) {
+                boolean isEmailUsed = adminDao.hasEmailForBoth(emailField.getText().trim());
+                if (isEmailUsed) {
+                    showError("Email is already used!");
+                    return false;
+                }
             }
-            if (phoneField.getText().trim().isEmpty() || !phoneField.getText().trim().matches("\\d{6,15}")) {
-                showError("Phone number must contain 6 to 15 digits."); return false;
+
+            // Only validate phone if it is visible
+            if (phoneField.isVisible()) {
+                if (phoneField.getText().trim().isEmpty() || !phoneField.getText().trim().matches("\\d{10}")) {
+                    showError("Phone number must contain exactly 10 digits. (9*********)");
+                    return false;
+                } else if (!isEditMode) {
+                    // Check if phone number is already used by ANOTHER user
+                    boolean isPhoneUsed = adminDao.hasPhoneForBoth(phoneField.getText().trim());
+                    if (isPhoneUsed) {
+                        showError("Phone number is already used!");
+                        return false;
+                    }
+                }
             }
-            if (addressField.getText().trim().isEmpty()) { // Validate Address
-                showError("Address is required."); return false;
+
+            if (addressField.getText().trim().isEmpty()) {
+                showError("Address is required.");
+                return false;
             }
             return true;
         }
 
-        private void showError(String msg) { JOptionPane.showMessageDialog(this, msg, "Validation Error", JOptionPane.ERROR_MESSAGE); }
+        private void showError(String msg) {
+            JOptionPane.showMessageDialog(this, msg, "Validation Error", JOptionPane.ERROR_MESSAGE);
+        }
 
         public String getFirstName() { return firstNameField.getText().trim(); }
         public String getLastName() { return lastNameField.getText().trim(); }
         public String getEmail() { return emailField.getText().trim(); }
         public String getPhone() { return phoneField.getText().trim(); }
-        public String getAddress() { return addressField.getText().trim(); } // Getter for Address
+        public String getAddress() { return addressField.getText().trim(); }
         public boolean isConfirmed() { return confirmed; }
         public User getUser() { return user; }
     }
 
-    // RoundedButton2 class
     private class RoundedButton2 extends JButton {
         private Color currentColor;
         public RoundedButton2(String text, Color baseColor) {
@@ -529,19 +828,14 @@ public class AdminUsersPage extends JFrame {
         }
     }
 
-    // User class
     public static class User {
         private int id;
-        private String name, email, phone, address, gender, role, status, joinDate; // Added address
-
+        private String name, email, phone, address, gender, role, status, joinDate;
         public User() {}
-
         public User(int id, String name, String email, String phone, String address, String gender, String role, String status, String joinDate) {
             this.id = id; this.name = name; this.email = email; this.phone = phone;
-            this.address = address; // Set address
-            this.gender = gender; this.role = role; this.status = status; this.joinDate = joinDate;
+            this.address = address; this.gender = gender; this.role = role; this.status = status; this.joinDate = joinDate;
         }
-
         public int getId() { return id; }
         public void setId(int id) { this.id = id; }
         public String getName() { return name; }
@@ -550,8 +844,8 @@ public class AdminUsersPage extends JFrame {
         public void setEmail(String email) { this.email = email; }
         public String getPhone() { return phone; }
         public void setPhone(String phone) { this.phone = phone; }
-        public String getAddress() { return address; } // Getter for address
-        public void setAddress(String address) { this.address = address; } // Setter for address
+        public String getAddress() { return address; }
+        public void setAddress(String address) { this.address = address; }
         public String getGender() { return gender; }
         public void setGender(String gender) { this.gender = gender; }
         public String getRole() { return role; }
