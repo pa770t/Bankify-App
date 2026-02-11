@@ -1,6 +1,7 @@
 package bankify;
 
 import bankify.dao.AgentDao;
+import bankify.service.EmailService;
 import bankify.service.PageGuardService;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -435,6 +436,8 @@ public class AgentRequestListPage extends JFrame {
             boolean success = agentDao.updatePassword(agent.getEmail(), newHashedPassword);
 
             if (success) {
+                EmailService emailService = new EmailService();
+                emailService.sendAgentPasswordChangeSuccessEmail(agent);
                 JOptionPane.showMessageDialog(this, "Password updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 dispose();
             } else {
