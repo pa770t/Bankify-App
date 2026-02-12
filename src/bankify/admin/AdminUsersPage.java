@@ -623,6 +623,22 @@ public class AdminUsersPage extends JFrame {
             formPanel.add(lblPhone, gbc);
             gbc.gridx = 1;
             phoneField = new JTextField(20);
+            // Limit input to 10 digits max
+            ((javax.swing.text.AbstractDocument) phoneField.getDocument()).setDocumentFilter(new javax.swing.text.DocumentFilter() {
+                public void insertString(FilterBypass fb, int offset, String string, javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
+                    if (string == null) return;
+                    if ((fb.getDocument().getLength() + string.length()) <= 10 && string.matches("\\d*")) {
+                        super.insertString(fb, offset, string, attr);
+                    }
+                }
+                public void replace(FilterBypass fb, int offset, int length, String text, javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                    if (text == null) return;
+                    if ((fb.getDocument().getLength() - length + text.length()) <= 10 && text.matches("\\d*")) {
+                        super.replace(fb, offset, length, text, attrs);
+                    }
+                }
+            });
+
             formPanel.add(phoneField, gbc);
 
             gbc.gridx = 0; gbc.gridy++;

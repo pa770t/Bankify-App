@@ -411,6 +411,6 @@ public class EmailService {
                         "</html>";
 
         // 3. Send the email
-        sendAsync(customer.getEmail(), subject, htmlTemplate);
+        sendAsync(agent.getEmail(), subject, htmlTemplate);
     }
 }
