@@ -47,8 +47,28 @@ public class AgentRequestListPage extends JFrame {
         setLayout(new BorderLayout());
 
         initData();
-        JPanel contentPanel = createBaseLayout();
-        add(contentPanel, BorderLayout.CENTER);
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(30, 127, 179));
+
+        JPanel topPanel = createTopPanel();
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+
+        // Center Panel with Scroll Pane
+        listContainer = new JPanel();
+        listContainer.setBackground(new Color(30, 127, 179));
+        listContainer.setLayout(null);
+
+        JScrollPane scrollPane = new JScrollPane(listContainer);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(new Color(30, 127, 179));
+
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        add(mainPanel, BorderLayout.CENTER);
+
 
         refreshList();
     }
@@ -57,10 +77,12 @@ public class AgentRequestListPage extends JFrame {
         requestList = moneyRequestDao.getMoneyRequests(agent.getEmail());
     }
 
-    private JPanel createBaseLayout() {
+    private JPanel createTopPanel() {
         JPanel panel = new JPanel();
         panel.setBackground(new Color(30, 127, 179));
         panel.setLayout(null);
+        panel.setPreferredSize(new Dimension(1200, 190));
+
 
         // --- 1. Agent Pill (Centered Top) ---
         int pillWidth = 220;
@@ -166,13 +188,7 @@ public class AgentRequestListPage extends JFrame {
 
         panel.add(buttonRow);
 
-        // --- 3. List Container (Moved down) ---
-        listContainer = new JPanel();
-        // Moved Y down to 190 to clear the buttons
-        listContainer.setBounds(0, 190, 1200, 580);
-        listContainer.setOpaque(false);
-        listContainer.setLayout(null);
-        panel.add(listContainer);
+
 
         return panel;
     }
@@ -230,10 +246,20 @@ public class AgentRequestListPage extends JFrame {
     private void refreshUiList() {
         listContainer.removeAll();
 
-        int startY = 10;
+        int startY = 20;
+        int itemHeight = 90;
+        int spacing = 110;
+
         for (RequestItem item : requestList) {
-            JPanel itemPanel = createRequestItem(item.customerName, item.requested_at, item.amount, item.request_type, 600, 90);
-            itemPanel.setBounds(300, startY, 600, 90);
+            JPanel itemPanel = createRequestItem(
+                    item.customerName,
+                    item.requested_at,
+                    item.amount,
+                    item.request_type,
+                    600,
+                    itemHeight
+            );
+            itemPanel.setBounds(300, startY, 600, itemHeight);
 
             itemPanel.addMouseListener(new MouseAdapter() {
                 @Override
@@ -243,10 +269,14 @@ public class AgentRequestListPage extends JFrame {
                 }
             });
             listContainer.add(itemPanel);
-            startY += 110;
+            startY += spacing;
         }
 
-        // Ensure the container paints the new children
+        // Set preferred size for scroll pane
+        int totalHeight = startY + 50;
+        listContainer.setPreferredSize(new Dimension(1150, totalHeight));
+        listContainer.setMinimumSize(new Dimension(1150, totalHeight));
+
         listContainer.revalidate();
         listContainer.repaint();
     }

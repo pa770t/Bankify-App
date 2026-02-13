@@ -126,7 +126,7 @@ public class CreateAdmin {
         } while (password.isEmpty());
 
         System.out.println("\nCreating admin...");
-        
+
         boolean success = dao.createAdmin(name, role, gender, email, phone, address, password);
 
         if (success) {

@@ -33,16 +33,23 @@ public class depositAgent extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
-
         JPanel contentPanel = createContent();
-        add(contentPanel, BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(contentPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(new Color(30, 127, 179));
+
+        add(scrollPane, BorderLayout.CENTER);
+
     }
 
     private JPanel createContent() {
         JPanel panel = new JPanel();
         panel.setBackground(new Color(30, 127, 179));
         panel.setLayout(null);
-
+        panel.setPreferredSize(new Dimension(1180, 1000));
         int pillWidth = 220, pillHeight = 60;
         int pillX = (1200 - pillWidth) / 2, pillY = 80;
 
@@ -163,7 +170,7 @@ public class depositAgent extends JFrame {
             else {
                 JOptionPane.showMessageDialog(null, "Your balance is insufficient!");
             }
-        new depositAgent(item, agent, agentDao, conn);
+            new depositAgent(item, agent, agentDao, conn);
         } else {
             JOptionPane.showMessageDialog(null, "You already done this!");
         }
