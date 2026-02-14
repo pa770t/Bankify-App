@@ -37,7 +37,7 @@ public class AccountDao {
 
             pstmt.setLong(1, agent.getAgentId());
             pstmt.setString(2, agent.getPhoneNumber());
-            pstmt.setDouble(3, 100000);
+            pstmt.setDouble(3, 1000000);
             pstmt.setString(4, "AGENT");
 
             return pstmt.executeUpdate() > 0;
