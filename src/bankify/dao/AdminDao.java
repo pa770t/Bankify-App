@@ -415,7 +415,7 @@ public class AdminDao {
                 String type = rs.getString("transaction_type");
                 double amount = rs.getDouble("amount");
                 String status = rs.getString("status");
-                Date date = rs.getDate("transaction_at");
+                Timestamp date = rs.getTimestamp("transaction_at");
 
                 String userId = String.valueOf(rs.getInt("user_id"));
                 String userName = rs.getString("user_name");
@@ -441,11 +441,11 @@ public class AdminDao {
                     case "SEND":
                         fromUserId = userId;
                         fromUserName = userName;
-                        toUserName = "Recipient"; // We don't know the recipient from this single row
+                        toUserName = "Recipient";
                         uiType = "Transfer";
                         break;
                     case "RECEIVE":
-                        fromUserName = "Sender"; // We don't know the sender from this single row
+                        fromUserName = "Sender";
                         toUserId = userId;
                         toUserName = userName;
                         uiType = "Transfer";

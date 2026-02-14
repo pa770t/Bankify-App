@@ -294,7 +294,7 @@ public class AdminTransactionsPage extends JFrame {
         tableModel.setRowCount(0); // Clear existing data
         transactionList = adminDao.getAllTransactions();
         
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         
         for (Transaction txn : transactionList) {
             Object[] row = {
